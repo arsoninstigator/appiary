@@ -31,9 +31,21 @@ have. the standard shapes:
   pattern. insforge (postgrest-style) follows the same shape with pkce.
 - **system-browser handoff.** the shell ships `@capacitor/browser`: the flow
   opens in the system browser (real https origin), and the callback returns
-  through the app scheme derived from the appId. the code-for-token exchange
-  afterwards is a plain https post from the webview, so no origin pinning
-  applies.
+  through the app scheme. the code-for-token exchange afterwards is a plain
+  https post from the webview, so no origin pinning applies.
+
+verified against the capacitor config docs: the webview schemes are
+`server.iosScheme` (default `capacitor`) and `server.androidScheme` (default
+`https`, must stay `https` — custom schemes break query params on chrome
+117+). we keep both at their defaults so every user allowlists the same two
+canonical origins instead of per-app strings.
+
+the oauth callback scheme is the appId itself (reverse-dns is a valid scheme,
+unique per app, zero derivation). remaining template task: register it in
+the generated platforms during `init-platforms.sh` —
+`/usr/libexec/plistbuddy` adding CFBundleURLTypes on ios and an intent-filter
+in the android manifest. the dashboard then shows users the exact callback
+string (`<appId>://`) for their provider config.
 
 rule: the login dance happens where an https origin exists (system browser,
 or provider support for the capacitor scheme), and everything after the

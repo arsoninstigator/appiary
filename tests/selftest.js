@@ -422,7 +422,9 @@ await test('16 bundle-runtime doc: lanes stay covered and store rules stay state
     'revenuecat',
     'stripe checkout',
     '3.1.1',
-    'never stripe for digital on ios'
+    'never stripe for digital on ios',
+    'server.iosScheme',
+    'server.androidScheme'
   ]) {
     assert.ok(d.includes(needle), `bundle-runtime doc missing ${needle}`)
   }
