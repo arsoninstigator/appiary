@@ -1,0 +1,87 @@
+# appiary runner lanes. executed inside the ephemeral github macos runner.
+# all credentials arrive as env vars redeemed from the single-use handoff:
+# ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (path to the decrypted .p8),
+# MATCH_GIT_URL, MATCH_PASSWORD,
+# PLAY_JSON (path to the decrypted service account json).
+# nothing is stored: match runs readonly, artifacts and secret files are
+# shredded in the cleanup step of the workflow.
+#
+# verified against docs.fastlane.tools (actions: match, gym, deliver,
+# supply, app_store_connect_api_key, gradle):
+# - deliver is upload_to_app_store: ios only. the play console upload is
+#   `supply` (alias upload_to_play_store) with aab/json_key/track.
+# - gradle(task: "bundle", build_type: "Release") builds the aab and sets
+#   SharedValues::GRADLE_AAB_OUTPUT_PATH.
+
+default_platform(:ios)
+
+platform :ios do
+  desc "build the production ipa and push it to testflight"
+  lane :release do
+    setup_ci
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_P8"),
+      is_key_content_base64: false
+    )
+
+    match(
+      type: "appstore",
+      readonly: true,
+      api_key: api_key,
+      git_url: ENV.fetch("MATCH_GIT_URL"),
+      keychain_name: "appiary.keychain",
+      keychain_password: ENV.fetch("MATCH_PASSWORD")
+    )
+
+    gym(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      export_method: "app-store",
+      skip_package_ipa: false,
+      clean: true
+    )
+
+    deliver(
+      api_key: api_key,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      skip_screenshots: true,
+      skip_metadata: true,
+      submit_for_review: false
+    )
+  end
+
+  desc "fast debug build used to mint the appetize preview artifact"
+  lane :preview do
+    gym(
+      workspace: "ios/App/App.xcworkspace",
+      scheme: "App",
+      configuration: "Debug",
+      export_method: "development",
+      skip_package_ipa: true,
+      include_symbols: true
+    )
+  end
+end
+
+platform :android do
+  desc "build the release aab and push it to the play console internal track"
+  lane :release do
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android"
+    )
+
+    supply(
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH] || "android/app/build/outputs/bundle/release/app-release.aab",
+      json_key: ENV.fetch("PLAY_JSON"),
+      track: "internal",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

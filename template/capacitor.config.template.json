@@ -1,0 +1,25 @@
+{
+  "appId": "{{APP_ID}}",
+  "appName": "{{APP_NAME}}",
+  "webDir": "www",
+  "server": {
+    "url": "{{WEB_URL}}",
+    "cleartext": {{CLEARTEXT}},
+    "androidScheme": "https",
+    "hostname": "{{HOSTNAME}}"
+  },
+  "ios": {
+    "contentInset": "always",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
+  }
+}

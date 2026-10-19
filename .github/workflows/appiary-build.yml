@@ -1,0 +1,102 @@
+name: appiary build
+# triggered by appiary's repository_dispatch. the runner is ephemeral:
+# everything lives for one job, secrets are redeemed once from the handoff
+# endpoint and shredded at the end. no mac infrastructure on our side.
+on:
+  repository_dispatch:
+    types: [appiary-build]
+
+concurrency:
+  group: appiary-${{ github.event.client_payload.jobId }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # client_payload.platform selects the os image; ios needs macos
+    # macos-latest resolves to macos-26 (arm64) since june 2026, per the
+    # actions/runner-images schedule; macos-14/15 are on the retirement path.
+    # client_payload.runner can override the label per dispatch, e.g. to a
+    # third-party runner pool (bitrise build hub) without touching the workflow.
+    runs-on: ${{ github.event.client_payload.runner || (github.event.client_payload.platform == 'android' && 'ubuntu-latest' || 'macos-latest') }}
+    timeout-minutes: 45
+    env:
+      APPIARY_JOB_ID: ${{ github.event.client_payload.jobId }}
+      APPIARY_HANDOFF_URL: ${{ github.event.client_payload.baseUrl }}
+    steps:
+      - name: checkout native template
+        uses: actions/checkout@v7
+
+      - name: inject capacitor configuration
+        run: |
+          cat <<'EOF' > capacitor.config.json
+          ${{ toJSON(github.event.client_payload.config) }}
+          EOF
+          node -e "JSON.parse(require('fs').readFileSync('capacitor.config.json','utf8'))" \
+            || (echo "config injection failed" && exit 1)
+
+      - name: redeem single-use credentials
+        env:
+          APPIARY_HANDOFF_TOKEN: ${{ github.event.client_payload.handoff.token }}
+        run: |
+          set -euo pipefail
+          secrets_payload="$(curl -fsS -X POST \
+            -H "content-type: application/json" \
+            -H "x-appiary-handoff: ${APPIARY_HANDOFF_TOKEN}" \
+            -d "{\"runId\": \"${GITHUB_RUN_ID}\", \"jobId\": \"${APPIARY_JOB_ID}\"}" \
+            "${APPIARY_HANDOFF_URL}/redeem")"
+          echo "credentials redeemed, exporting to job env"
+          # redeem is single-use: this is the only place values exist.
+          # .p8 / service-account entries are written as files, everything
+          # else becomes an env var. nothing is echoed to the log.
+          echo "$secrets_payload" | node -e '
+            let d = "";
+            process.stdin.on("data", (c) => (d += c));
+            process.stdin.on("end", () => {
+              const env = JSON.parse(d).env;
+              for (const [k, v] of Object.entries(env)) {
+                if (typeof v !== "string") continue;
+                if (k.endsWith("P8") || k.endsWith("JSON")) {
+                  require("fs").writeFileSync(`/tmp/${k.toLowerCase()}.secret`, Buffer.from(v, "base64"));
+                  console.log(`${k}=/tmp/${k.toLowerCase()}.secret`);
+                } else {
+                  console.log(`${k}=${v}`);
+                }
+              }
+            });' >> "$GITHUB_ENV"
+
+      - name: set up node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: sync capacitor project
+        run: |
+          npm install
+          npx cap sync
+
+      - name: set up ruby and fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: build and submit (${{ github.event.client_payload.platform }})
+        run: bundle exec fastlane ${{ github.event.client_payload.platform }} release
+
+      - name: shred secrets and artifacts
+        if: always()
+        run: |
+          rm -f /tmp/*.secret || true
+          find . -name "*.p8" -delete || true
+          find . -name "*.mobileprovision" -delete || true
+          security delete-keychain appiary.keychain || true
+
+      - name: report status to appiary
+        if: always()
+        env:
+          APPIARY_STATUS: ${{ job.status }}
+        run: |
+          curl -fsS -X POST \
+            -H "content-type: application/json" \
+            -d "{\"jobId\": \"${APPIARY_JOB_ID}\", \"status\": \"${APPIARY_STATUS}\"}" \
+            "${APPIARY_HANDOFF_URL}/report" || echo "status report failed (non-fatal)"

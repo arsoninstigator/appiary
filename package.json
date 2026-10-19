@@ -1,0 +1,16 @@
+{
+  "name": "appiary",
+  "version": "0.1.0",
+  "description": "middle saas layer that packages web apps into native ios and android apps via capacitor, simulator previews, and cloud-compiled fastlane pipelines",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "appiary": "src/index.js"
+  },
+  "scripts": {
+    "test": "node tests/selftest.js"
+  }
+}
