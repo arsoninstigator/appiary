@@ -649,6 +649,74 @@ await test('25 game + a11y surfaces: screen reader detection, haptics, orientati
   assert.ok(r.includes('games'), 'readme must mention the games doc')
 })
 
+
+await test('26 gameServices capability: entitlements, first-party plugin, runtime wiring end to end', async () => {
+  const { entitlementsFor, entitlementsPlist, normalizePermissions } = await import(new URL('../src/permissions.js', import.meta.url))
+  const { patchMainActivityGames } = await import(new URL('../src/runtime-patch.js', import.meta.url))
+
+  const ents = entitlementsFor(['push', 'gameServices'])
+  assert.equal(ents['aps-environment'], 'production')
+  assert.equal(ents['com.apple.developer.game-center'], true)
+  const plist = entitlementsPlist(ents)
+  assert.ok(plist.includes('<key>com.apple.developer.game-center</key>\n  <true/>'))
+  assert.ok(normalizePermissions(['gameServices']).includes('gameServices'))
+
+  const fixture = readFileSync(new URL('../tests/fixtures/capacitor-8.5.3/android/app/src/main/java/com/getcapacitor/myapp/MainActivity.java', import.meta.url), 'utf8')
+  const patched = patchMainActivityGames(fixture)
+  assert.ok(patched.indexOf('package ') < patched.indexOf('import android.os.Bundle'), 'package must stay first')
+  assert.ok(patched.includes('PlayGamesSdk.initialize(this)'))
+  assert.ok(patched.indexOf('PlayGamesSdk.initialize') < patched.indexOf('super.onCreate'))
+  assert.equal(patchMainActivityGames(patched), patched, 'patch is idempotent')
+
+  const { execFileSync } = await import('node:child_process')
+  const { mkdtempSync, mkdirSync, writeFileSync, cpSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const script = new URL('../template/scripts/apply-runtime.js', import.meta.url).pathname
+  const tpl = new URL('../template/', import.meta.url).pathname
+  const fx = (p) => new URL(`../tests/fixtures/capacitor-8.5.3/${p}`, import.meta.url).pathname
+  const dir = mkdtempSync(join(tmpdir(), 'appiary-games-'))
+  writeFileSync(join(dir, 'capacitor.config.json'), JSON.stringify({
+    appId: 'com.demo.game', appName: 'demo', version: '0.4.0',
+    permissions: ['gameServices'],
+    channel: { name: 'play' }
+  }))
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'x', type: 'module', devDependencies: {} }))
+  const run = (phase) => execFileSync('node', [script, phase, 'android'], { cwd: dir, env: { ...process.env, GITHUB_RUN_NUMBER: '3' } })
+
+  run('pre')
+  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+  assert.equal(pkg.devDependencies['appiary-game-services'], 'file:plugins/appiary-game-services', 'gameServices must install the first-party plugin')
+  assert.ok(!pkg.devDependencies['@capacitor/camera'], 'no camera declared, no camera plugin')
+
+  mkdirSync(join(dir, 'android/app/src/main/java/com/demo/game'), { recursive: true })
+  cpSync(fx('android/app/src/main/java/com/getcapacitor/myapp/MainActivity.java'), join(dir, 'android/app/src/main/java/com/demo/game/MainActivity.java'))
+  cpSync(fx('android/app/src/main/AndroidManifest.xml'), join(dir, 'android/app/src/main/AndroidManifest.xml'))
+  mkdirSync(join(dir, 'android/app'), { recursive: true })
+  cpSync(fx('android/app/build.gradle'), join(dir, 'android/app/build.gradle'))
+  mkdirSync(join(dir, 'www/runtime'), { recursive: true })
+  writeFileSync(join(dir, 'www/index.html'), '<html><head></head><body>game</body></html>')
+  cpSync(join(tpl, 'runtime/appiary-bridge.js'), join(dir, 'runtime/appiary-bridge.js'))
+
+  run('post')
+  const mainActivity = readFileSync(join(dir, 'android/app/src/main/java/com/demo/game/MainActivity.java'), 'utf8')
+  assert.ok(mainActivity.includes('PlayGamesSdk.initialize(this)'), 'MainActivity must initialize play games v2')
+  const manifest = readFileSync(join(dir, 'android/app/src/main/AndroidManifest.xml'), 'utf8')
+  assert.ok(!manifest.includes('REQUEST_INSTALL_PACKAGES'), 'play channel needs no install permission')
+  const bridge = readFileSync(join(dir, 'www/appiary-runtime.js'), 'utf8')
+  assert.ok(bridge.includes('gameServices'), 'bridge must expose the game services surface')
+  assert.ok(bridge.includes('"channel":"play"'))
+
+  const plugin = readFileSync(new URL('../template/plugins/appiary-game-services/android/src/main/java/appiary/game/services/AppiaryGameServicesPlugin.java', import.meta.url), 'utf8')
+  assert.ok(plugin.includes('PlayGames.getGamesSignInClient'), 'android half uses the v2 sign-in client')
+  assert.ok(!plugin.includes('Games.getAchievementsClient(activity,'), 'v1 two-arg client form must not survive')
+  const swift = readFileSync(new URL('../template/plugins/appiary-game-services/ios/Plugin/AppiaryGameServicesPlugin.swift', import.meta.url), 'utf8')
+  assert.ok(swift.includes('GKLocalPlayer'), 'ios half is game center')
+  const g = readFileSync(new URL('../docs/games.md', import.meta.url), 'utf8')
+  assert.ok(g.includes('gameServices'), 'games doc must document the capability')
+  assert.ok(g.includes('retired v1'), 'the dead ecosystem plugin must be called out')
+  assert.ok(g.includes('never been compiled'), 'compile status must be stated honestly')
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1

@@ -60,3 +60,49 @@ other app.
 casual and mid-core games (match, runner, puzzle, word, idle, board):
 yes, ship it. heavy 3d, sub-frame audio sync, anti-cheat-grade: no, and
 saying so is cheaper than a refund.
+
+## connecting to google play (and game center)
+
+"connected" games - achievements, leaderboards, the play games profile -
+are a native sdk story, and the ecosystem had nothing usable: the one
+public capacitor plugin (gammafp) targets capacitor 5 on the retired v1
+sdk, which google killed for new apps in 2024. so appiary ships its own.
+
+declaring the `gameServices` capability installs a first-party in-repo
+plugin (`template/plugins/appiary-game-services`) and wires the native
+side automatically:
+
+- **android**: play games v2 (sign-in via the play store account picker,
+  achievements, leaderboards, player profile). v2 initialization is
+  injected into MainActivity at build time; v2 needs no manifest app id.
+- **ios**: game center, same shape: sign-in, achievements, leaderboard
+  scores, the native game center ui. the game-center entitlement is
+  injected alongside push's when declared.
+
+the bridge normalizes both stores into one surface:
+
+```js
+appiary.gameServices.available()          // false until the capability is declared
+appiary.gameServices.signIn()             // { authenticated: true } - store handles the picker
+appiary.gameServices.unlock('achId')      // resource id from the store console
+appiary.gameServices.increment('achId', 5)
+appiary.gameServices.submitScore('lbId', 12500)
+appiary.gameServices.playerInfo()         // { id, displayName, title }
+appiary.gameServices.showAchievements()   // native ui overlay
+appiary.gameServices.showLeaderboards()
+```
+
+owner setup is console work, not code work: play console - create the
+game services project, link the app, declare achievements/leaderboards,
+paste the resource ids into the web app. app store connect - enable
+game center and declare the same. the ids are ordinary constants in the
+owner's web code; nothing appiary-specific about them.
+
+honest status: the plugin's api calls are verified against the play
+games v2 and gamekit docs, but it has never been compiled - there is no
+mac and no android sdk in this room. the first `gameServices` push is
+its compile test, and that is stated here rather than implied.
+
+one more honest limit: google play games on pc (the desktop program)
+requires native pc-compatible builds; webview games are not eligible.
+saying so up front beats a support ticket later.

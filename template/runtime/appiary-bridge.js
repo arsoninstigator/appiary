@@ -190,6 +190,49 @@
       }
     },
 
+    /** google play games v2 (android) / game center (ios). the store
+        handles sign-in; ids are the console-declared resource ids. */
+    gameServices: {
+      available: function () {
+        return !!plugins.AppiaryGameServices && native
+      },
+      signIn: function () {
+        var p = plugins.AppiaryGameServices
+        if (!p) return Promise.resolve({ authenticated: false, unavailable: true })
+        return p.signIn()
+      },
+      unlock: function (achievementId) {
+        var p = plugins.AppiaryGameServices
+        if (!p) return Promise.resolve(null)
+        return p.unlock({ achievementId: achievementId })
+      },
+      increment: function (achievementId, steps) {
+        var p = plugins.AppiaryGameServices
+        if (!p) return Promise.resolve(null)
+        return p.increment({ achievementId: achievementId, steps: steps || 1 })
+      },
+      submitScore: function (leaderboardId, score) {
+        var p = plugins.AppiaryGameServices
+        if (!p) return Promise.resolve(null)
+        return p.submitScore({ leaderboardId: leaderboardId, score: score })
+      },
+      playerInfo: function () {
+        var p = plugins.AppiaryGameServices
+        if (!p) return Promise.resolve(null)
+        return p.playerInfo()
+      },
+      showAchievements: function () {
+        var p = plugins.AppiaryGameServices
+        if (!p) return Promise.resolve(null)
+        return p.showAchievements()
+      },
+      showLeaderboards: function () {
+        var p = plugins.AppiaryGameServices
+        if (!p) return Promise.resolve(null)
+        return p.showLeaderboards()
+      }
+    },
+
     updates: {
       /** direct-channel updater: fetch the user's endpoint, compare against
           the baked-in build number, let their ui decide what to show.

@@ -1,0 +1,27 @@
+ext {
+  capacitorPluginVersion = project.hasProperty('capacitorPluginVersion') ? capacitorPluginVersion : 'unspecified'
+}
+
+apply plugin: 'com.android.library'
+
+android {
+  namespace 'appiary.game.services'
+  compileSdk project.hasProperty('compileSdkVersion') ? compileSdkVersion : 35
+  defaultConfig {
+    minSdkVersion project.hasProperty('minSdkVersion') ? minSdkVersion : 23
+    targetSdkVersion project.hasProperty('targetSdkVersion') ? targetSdkVersion : 35
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_21
+    targetCompatibility JavaVersion.VERSION_21
+  }
+}
+
+repositories {
+  google()
+}
+
+dependencies {
+  implementation "com.google.android.gms:play-services-games:v2:23.2.0"
+  implementation project(':capacitor-android')
+}

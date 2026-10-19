@@ -1,0 +1,9 @@
+{
+  "name": "appiary-game-services",
+  "version": "0.1.0",
+  "description": "appiary first-party capacitor plugin: google play games v2 (android) and game center (ios). the public ecosystem plugins are dead (gammafp targets capacitor 5 on the retired v1 sdk), so this ships in-repo and is only installed when the gameServices capability is declared.",
+  "capacitor": {
+    "android": { "src": "android" },
+    "ios": { "src": "ios" }
+  }
+}

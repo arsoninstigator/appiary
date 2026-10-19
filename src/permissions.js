@@ -38,7 +38,41 @@ export const PERMISSIONS = {
     label: 'push notifications',
     ios: { key: null, entitlement: 'aps-environment', description: null },
     android: ['android.permission.POST_NOTIFICATIONS']
+  },
+  gameServices: {
+    /** google play games v2 (android) / game center (ios). no os
+     *  permission dialog: the store handles its own sign-in. ios needs the
+     *  game-center entitlement; android v2 needs no manifest line. */
+    label: 'game services (google play games / game center)',
+    ios: { key: null, entitlement: 'com.apple.developer.game-center', description: null },
+    android: []
   }
+}
+
+/** ios entitlements implied by the declared capabilities */
+export function entitlementsFor(list = []) {
+  const out = {}
+  for (const id of normalizePermissions(list)) {
+    const ent = PERMISSIONS[id].ios.entitlement
+    if (!ent) continue
+    out[ent] = ent === 'aps-environment' ? 'production' : true
+  }
+  return out
+}
+
+/** entitlements plist body from an entitlements dict */
+export function entitlementsPlist(entries = {}) {
+  const body = Object.entries(entries).map(([k, v]) =>
+    v === true ? `  <key>${k}</key>\n  <true/>` : `  <key>${k}</key>\n  <string>${v}</string>`
+  ).join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+${body}
+</dict>
+</plist>
+`
 }
 
 /** validate and normalize a permissions list; unknown ids throw */
@@ -141,6 +175,13 @@ export const RUNTIME_SURFACE = {
   push: {
     plugin: '@capacitor/push-notifications',
     pluginStateKey: 'receive'
+  },
+  gameServices: {
+    /* first-party in-repo plugin (template/plugins/appiary-game-services),
+       installed as a file: dep when the capability is declared; the store
+       sign-in flow has no permission state to query. */
+    plugin: null,
+    via: 'appiary-game-services'
   }
 }
 

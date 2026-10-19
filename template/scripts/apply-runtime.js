@@ -33,10 +33,10 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const srcRoot = join(here, '..', '..', 'src')
 const {
-  iosUsageDescriptions, androidPermissions, needsPushEntitlement, pushEntitlements,
+  iosUsageDescriptions, androidPermissions, entitlementsFor, entitlementsPlist,
   pluginDependenciesFor, normalizePermissions
 } = await import(`file://${join(srcRoot, 'permissions.js')}`)
-const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference, patchXcodeVersions } =
+const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference, patchXcodeVersions, patchMainActivityGames } =
   await import(`file://${join(srcRoot, 'runtime-patch.js')}`)
 const { normalizeChannel, CHANNELS } = await import(`file://${join(srcRoot, 'channels.js')}`)
 const { normalizeReleaseTrack } = await import(`file://${join(srcRoot, 'releases.js')}`)
@@ -73,6 +73,11 @@ if (phase === 'pre') {
   for (const dep of pluginDependenciesFor(permissions)) {
     pkg.devDependencies[dep] = pkg.devDependencies[dep] || '^8.0.0'
   }
+  if (permissions.includes('gameServices')) {
+    /* first-party local plugin (public ecosystem is v1-era dead); file:
+       dep installs it from the repo and cap sync registers it. */
+    pkg.devDependencies['appiary-game-services'] = 'file:plugins/appiary-game-services'
+  }
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
   normalizeReleaseTrack(platform, config.releaseTrack, config.rollout)
   console.log(`pre: channel ${channel.name}, track ${config.releaseTrack || 'default'}, ${permissions.length} declared capabilities`)
@@ -97,8 +102,9 @@ if (platform === 'ios') {
     const pbxPath = 'ios/App/App.xcodeproj/project.pbxproj'
     const pbx = readFileSync(pbxPath, 'utf8')
     writeFileSync(pbxPath, patchXcodeVersions(pbx, { version: config.version, buildNumber: runNumber }))
-    if (needsPushEntitlement(permissions)) {
-      writeFileSync('ios/App/App/App.entitlements', pushEntitlements())
+    const entitlements = entitlementsFor(permissions)
+    if (Object.keys(entitlements).length > 0) {
+      writeFileSync('ios/App/App/App.entitlements', entitlementsPlist(entitlements))
       writeFileSync(pbxPath, patchEntitlementsReference(readFileSync(pbxPath, 'utf8')))
     }
   }
@@ -112,6 +118,13 @@ if (platform === 'android') {
     const channelPerm = CHANNELS[channel.name].androidPermission
     const all = channelPerm ? [...manifestPerms, channelPerm] : manifestPerms
     writeFileSync(manifestPath, patchAndroidManifest(readFileSync(manifestPath, 'utf8'), all))
+  }
+  if (permissions.includes('gameServices')) {
+    /* MainActivity package path derives from appId (com.foo.bar -> com/foo/bar) */
+    const mainActivity = join('android/app/src/main/java', ...String(config.appId).split('.'), 'MainActivity.java')
+    if (existsSync(mainActivity)) {
+      writeFileSync(mainActivity, patchMainActivityGames(readFileSync(mainActivity, 'utf8')))
+    }
   }
   const gradlePath = 'android/app/build.gradle'
   if (existsSync(gradlePath)) {
