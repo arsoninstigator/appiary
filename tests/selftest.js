@@ -717,6 +717,35 @@ await test('26 gameServices capability: entitlements, first-party plugin, runtim
   assert.ok(g.includes('never been compiled'), 'compile status must be stated honestly')
 })
 
+
+await test('27 every template devDependency range resolves on the live registry', async () => {
+  /* the browser ^8.1.1 fantasy version broke a real npm install on a real
+     linux vm; every pinned range must resolve, checked against npm itself
+     rather than memory. offline runs skip cleanly. */
+  const pkg = JSON.parse(readFileSync(new URL('../template/package.json', import.meta.url), 'utf8'))
+  const entries = Object.entries(pkg.devDependencies).filter(([name]) => name.startsWith('@capacitor/'))
+  assert.ok(entries.length >= 13, 'catalog must be substantial')
+  const { setTimeout } = await import('node:timers/promises')
+  for (const [name, range] of entries) {
+    const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name).replace('%40', '@')}`, {
+      signal: AbortSignal.timeout(15000)
+    })
+    if (!res.ok) {
+      if (res.status >= 500 || res.status === 403) {
+        console.log(`        (registry unreachable, skipping ${name})`)
+        continue
+      }
+      throw new Error(`registry lookup failed for ${name}: ${res.status}`)
+    }
+    const d = await res.json()
+    const want = range.replace(/^[~^]/, '')
+    const candidates = Object.keys(d.versions).filter(v => !v.includes('-'))
+    if (!candidates.some(v => v === want || v.startsWith(want + '.'))) {
+      throw new Error(`${name}@${range} does not resolve; max 8.x is ${candidates.filter(v => v.startsWith('8.')).pop()}`)
+    }
+  }
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1
