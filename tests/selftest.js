@@ -478,6 +478,18 @@ await test('19 configs carry permissions; runner applies them after sync', async
   assert.ok(pkg.devDependencies['@capacitor/local-notifications'], 'local notifications plugin must ship in the shell')
 })
 
+
+await test('20 pricing: per-push tiers stated in readme and cost model', () => {
+  const c = readFileSync(new URL('../docs/cost-model.md', import.meta.url), 'utf8')
+  const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  for (const doc of [c, r]) {
+    for (const needle of ['48.99', '28.99', '77.98']) {
+      assert.ok(doc.includes(needle), `pricing doc missing ${needle}`)
+    }
+  }
+  assert.ok(c.includes('per push, usage-based'), 'usage-based push model must stay stated')
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1

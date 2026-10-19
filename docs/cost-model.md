@@ -117,3 +117,31 @@ fee, and it removes the app-review risk that wrap mode carries.
   (long-standing published rates, re-confirmed 2026-10-19)
 - eas build per-build pricing: expo.dev/pricing and docs.expo.dev usage-based
   pricing (read 2026-10-19)
+
+## our pricing (owner-set 2026-10-19)
+
+per push, usage-based. no subscriptions, no per-seat licenses.
+
+| item | price |
+|---|---|
+| ios push (build + sign + testflight upload) | **$48.99** |
+| android push (build + sign + play internal upload) | **$28.99** |
+| both platforms, first ship | **$77.98** |
+| preview sessions | bundled, hard minute caps per project |
+
+a push is one pipeline run that produces a new store artifact: the first
+build and every update build are the same event at the same price. wrap-mode
+content edits never trigger a push (the webview streams the live site), so
+users only pay when they rebuild. update pushes are typically minutes apart,
+which keeps the update button honest at per-push pricing.
+
+margins against the modeled variable cost:
+
+| push | price | variable cost | gross margin |
+|---|---|---|---|
+| ios | $48.99 | $0.10-0.30 (build hub) / $1.60-2.40 (github macos fallback) | 95-99% / 94-97% |
+| android | $28.99 | $0.04-0.08 | ~99% |
+
+positioning: entry at $77.98 for both platforms undercuts one-time
+competitors ($249) while per-push updates keep costs proportional to actual
+usage. preview minutes are the only real cost lever left, hence the caps.

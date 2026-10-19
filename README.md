@@ -64,3 +64,10 @@ see `docs/horizon.md` for the versioned plan: v1 capacitor wrap (now), v2 react 
 ## status
 
 working core: all four steps implemented and covered by 11 self-tests (encryption roundtrip + tamper detection, plaintext-never-stored, single-use handoff redeem/burn/ttl, capacitor injection + validation, appetize publish + embed, dispatch payload shape, end-to-end pipeline state machine, handoff server over real http, log redaction, runner workflow ordering). the native template's xcode/gradle projects and the dashboard ui are the next layer.
+
+## pricing
+
+per push, usage-based, no subscriptions. ios push $48.99, android push $28.99, both platforms $77.98. a push is any pipeline run that produces a new store artifact —
+first build and updates cost the same, wrap-mode content edits are free
+(they never rebuild). previews are bundled with hard minute caps. see
+docs/cost-model.md for the margin math.
