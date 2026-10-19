@@ -746,6 +746,31 @@ await test('27 every template devDependency range resolves on the live registry'
   }
 })
 
+
+await test('28 media/realtime/native-surfaces doc: honest verdicts, vm-verified claims, v1 exclusions', async () => {
+  const m = readFileSync(new URL('../docs/media.md', import.meta.url), 'utf8')
+  const needles = [
+    'same engine',                                  // no-wrapper-lag framing
+    'mic mutes when the app backgrounds',            // call background limit
+    'plain html5 audio does not survive',           // background playback
+    'web bluetooth does not exist in android webview',
+    'drive.file',                                   // drive backend = oauth + rest
+    'drm (widevine/fairplay) is unsupported',
+    'planned v2 capability',                        // media service not fantasy
+    'sub-second',                                   // trading exclusion
+    'mining is banned by both stores',
+    'regulated financial institution',
+    'inherited, not weakened',
+    'secure enclave',
+    'certificate pinning',
+    'FLAG_SECURE',
+    'no supported way to block a screenshot'
+  ]
+  for (const n of needles) assert.ok(m.includes(n), `media doc missing: ${n}`)
+  assert.ok(m.includes('ios 14.3'), 'getUserMedia support floor must be stated')
+  assert.ok(m.includes('foreground service'), 'android background audio pattern must be named')
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1
