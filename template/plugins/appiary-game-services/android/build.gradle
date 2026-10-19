@@ -21,7 +21,12 @@ repositories {
   google()
 }
 
+// shared androidx versions follow capacitor's own module pattern
+// (rootProject.ext lookup with a fallback); v2 sign-in surfaces
+// FragmentActivity types, so appcompat must be on the compile classpath.
+def androidxAppCompatVersion = project.hasProperty('androidxAppCompatVersion') ? rootProject.ext.androidxAppCompatVersion : '1.7.1'
 dependencies {
+  implementation "androidx.appcompat:appcompat:${androidxAppCompatVersion}"
   implementation "com.google.android.gms:play-services-games-v2:22.1.0"
   implementation project(':capacitor-android')
 }
