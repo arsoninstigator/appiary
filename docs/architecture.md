@@ -66,6 +66,8 @@ uris to https care about this:
   appId is known.
 
 users keep their own auth either way; appiary never proxies credentials.
+the full runtime map for bundle mode (api calls, oauth, revenuecat, stripe)
+is in docs/bundle-runtime.md.
 
 ### in-app purchases (premium add-on, after v1)
 

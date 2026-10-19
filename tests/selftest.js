@@ -412,6 +412,22 @@ await test('15 native template: self-contained capacitor project, runner-generat
   assert.ok(stub.toLowerCase().includes('<!doctype html>'), 'www placeholder must be a real page')
 })
 
+
+await test('16 bundle-runtime doc: lanes stay covered and store rules stay stated', () => {
+  const d = readFileSync(new URL('../docs/bundle-runtime.md', import.meta.url), 'utf8')
+  for (const needle of [
+    'capacitor://localhost',
+    'https://localhost',
+    'custom-scheme',
+    'revenuecat',
+    'stripe checkout',
+    '3.1.1',
+    'never stripe for digital on ios'
+  ]) {
+    assert.ok(d.includes(needle), `bundle-runtime doc missing ${needle}`)
+  }
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1
