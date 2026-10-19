@@ -10,8 +10,8 @@ appiary meets customers wherever their ai tool leaves them:
 
 - **web url (wrap mode):** any published https url. known builder hosts are
   labeled for the dashboard (lovable, replit, base44, bolt.new, rocket.new,
-  blink.new, zite.so, emergent, v0, plus common static hosts like vercel,
-  netlify, render, pages.dev). the url is injected into capacitor
+  blink.new, zite.so, emergent, v0, rork, a0.dev, plus common static hosts
+  like vercel, netlify, render, pages.dev). the url is injected into capacitor
   `server.url` and the app streams live in the webview. this covers users
   who cannot get their code out of the editor at all.
 - **git repo (bundle mode):** github, gitlab, bitbucket, and gitea urls,
@@ -19,11 +19,10 @@ appiary meets customers wherever their ai tool leaves them:
   `/branch/<ref>`, `/src/branch/<ref>`). the runner clones, builds the web
   app (`npm ci && npm run build`), and stages the output into `www/`.
 - **zip (bundle mode):** an uploaded artifact url; the runner unpacks and
-  stages it the same way. workspace exporter tools (e.g. codejack, a
-  browser extension that downloads a user's entire lovable / base44 /
-  bolt.new / zite.so / emergent / replit workspace as a zip or json) feed
-  this path directly: codejack gets the code out, appiary turns it into a
-  native app. exporter zips usually wrap everything in one top-level
+  stages it the same way. workspace exporter tools feed this path directly:
+  codejack, a sister app currently in development, is being built to download
+  a user's entire ai-builder workspace as a zip or json. codejack gets the
+  code out, appiary turns it into a native app. exporter zips usually wrap everything in one top-level
   folder, so `scripts/stage-source.js` flattens wrappers, picks the build
   output (dist / build / out / public), strips node_modules, and validates
   index.html before `npx cap sync`.

@@ -314,6 +314,8 @@ await test('12 intake classifies web urls, git repos, and zips', async () => {
   assert.equal(zip.mode, 'bundle-zip')
 
   assert.equal(labelBuilder('https://bolt.new/x'), 'bolt')
+  assert.equal(labelBuilder('https://my-app.rork.app'), 'rork')
+  assert.equal(labelBuilder('https://preview.a0.dev'), 'a0')
   await assert.rejects(async () => classifyIntake({}), /requires one of/)
   await assert.rejects(async () => normalizeGitRepo('https://gitlab.com/not-a-repo'), /owner\/repo/)
 })

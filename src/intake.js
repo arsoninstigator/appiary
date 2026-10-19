@@ -8,9 +8,9 @@
  *    their code out of the ai tool. this is bundle mode: the runner builds
  *    the web app and ships it inside the app binary.
  *  - a zip artifact url. also bundle mode. this includes workspace-export
- *    zips from exporter tools (e.g. codejack, which downloads a user's whole
- *    ai-builder workspace as a zip or json): the runner's staging script
- *    flattens the wrapper folder these exports usually add.
+ *    zips from exporter tools (codejack, a sister app in development, will
+ *    download a user's whole ai-builder workspace as a zip or json): the
+ *    runner's staging script flattens the wrapper folder these exports add.
  * bundle mode produces a real bundled app with no server.url, which is the
  * sturdier answer to app review (see docs/architecture.md).
  */
@@ -31,6 +31,9 @@ export const BUILDER_HOSTS = [
   { suffix: 'emergent.sh', builder: 'emergent' },
   { suffix: 'v0.dev', builder: 'v0' },
   { suffix: 'v0.app', builder: 'v0' },
+  { suffix: 'rork.com', builder: 'rork' },
+  { suffix: 'rork.app', builder: 'rork' },
+  { suffix: 'a0.dev', builder: 'a0' },
   { suffix: 'vercel.app', builder: 'vercel' },
   { suffix: 'netlify.app', builder: 'netlify' },
   { suffix: 'onrender.com', builder: 'render' },
