@@ -642,7 +642,7 @@ await test('25 game + a11y surfaces: screen reader detection, haptics, orientati
   assert.ok(dr.includes('device-local'), 'streak guidance must anchor on device-local time')
   assert.ok(dr.includes('cross-check'), 'streak anti-cheat caveat must be stated')
   const g = readFileSync(new URL('../docs/games.md', import.meta.url), 'utf8')
-  for (const needle of ['hardware-accelerated', 'appiary.haptics', 'orientation.lock', 'wrong tool for it', '4.2']) {
+  for (const needle of ['hardware-accelerated', 'appiary.haptics', 'orientation.lock', 'wrong tool for it', '4.2', 'bluestacks', 'not a supported target']) {
     assert.ok(g.includes(needle), `games doc missing ${needle}`)
   }
   const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')

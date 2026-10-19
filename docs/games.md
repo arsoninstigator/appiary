@@ -106,3 +106,28 @@ its compile test, and that is stated here rather than implied.
 one more honest limit: google play games on pc (the desktop program)
 requires native pc-compatible builds; webview games are not eligible.
 saying so up front beats a support ticket later.
+
+## emulators (bluestacks and friends)
+
+two different questions hide in "does it run on emulators":
+
+- **official android emulator (avd), and our appetize preview**: yes by
+  construction. the appetize preview lane runs the app in a real android
+  emulator in the browser, so every appiary build has already proven
+  itself on an emulator before a store ever sees it.
+- **consumer android-on-windows emulators (bluestacks, ldstudio-class,
+  nox)**: the output is a standard android app, so an apk will generally
+  install and run - these emulators exist to run games, and hardware-
+  accelerated webgl works on them. but three honest caveats:
+  1. the pipeline ships signed aabs to the play console, not apks;
+     running on bluestacks means building an apk separately.
+  2. the webview version varies wildly by emulator instance (some run
+     android 7-era chromium); whether the owner's web app runs depends
+     on its js baseline, not on the shell.
+  3. store integrations can fail there: play games v2 sign-in and
+     billing expect a device that passes play integrity checks, and
+     emulator images often do not.
+
+  these emulators are not a supported target. we test on avd and real
+  devices; if an owner's players live on bluestacks, that is a market
+  call for the owner, not a bug in the shell.
