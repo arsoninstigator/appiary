@@ -70,3 +70,41 @@ ota web-asset hotpatching stays parked at v2: store builds update by
 rebuild (minutes), direct builds update by check+download, and hotpatches
 cannot ship native changes anyway. when it ships it will ride the same
 build-number monotonicity, so nothing about this design changes under it.
+
+## release tracks: test users vs regular users
+
+a track is chosen per push (`releaseTrack` at intake) and the store's own
+beta machinery routes users - we ship to the surface, the surface finds
+the audience. competitors that wrap-and-forget do not do this at all.
+
+| track | platform | who gets the build |
+|---|---|---|
+| testflight (default) | ios | internal groups (up to 100 per group) + external testers invited by email |
+| appstore | ios | all app store users, after review (the push submits for review) |
+| internal (default) | android | up to 100 internal testers in the play console |
+| closed | android | closed beta: email list / google group admission |
+| open | android | open beta: anyone can join from the play listing |
+| production | android | all play users, optionally a staged rollout fraction |
+
+the mechanics, for owners who ask "how do my testers get betas":
+
+- **play**: testers opt into the beta program on the app's play listing (or
+  the owner adds their email to the closed list). the store then
+  auto-updates exactly those users to the beta build; production users
+  keep getting production builds. promotion closed -> open -> production
+  is a play console action (or simply push the same build to the next
+  track).
+- **ios**: testflight distribution by email; app store production stays
+  untouched until an explicit `appstore` push submits for review.
+- **what makes this safe**: build numbers are monotonic (github run
+  number), so a beta build is always strictly newer than what any
+  production user has, and no store ever offers a beta to the wrong
+  audience.
+
+**staged rollouts**: a production push can set `rollout` (e.g. `0.25`)
+so 25% of users get the update first; the owner promotes 100% from the
+console after watching crash rates. rollout only applies to production,
+validated pre-build.
+
+each track push is its own pipeline run and store artifact, priced per
+push.

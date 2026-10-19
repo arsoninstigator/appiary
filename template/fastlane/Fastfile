@@ -44,12 +44,18 @@ platform :ios do
       clean: true
     )
 
+    # track rides in as env from the dispatch config (src/releases.js
+    # validates it pre-sync). testflight = the default, appstore = submit
+    # for review to all users.
+    track = ENV.fetch("RELEASE_TRACK", "testflight")
+    UI.user_error!("unknown ios release track: #{track}") unless ["testflight", "appstore"].include?(track)
+
     deliver(
       api_key: api_key,
       ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
       skip_screenshots: true,
       skip_metadata: true,
-      submit_for_review: false
+      submit_for_review: track == "appstore"
     )
   end
 
@@ -67,7 +73,7 @@ platform :ios do
 end
 
 platform :android do
-  desc "build the release aab and push it to the play console internal track"
+  desc "build the release aab and push to the chosen play console track"
   lane :release do
     gradle(
       task: "bundle",
@@ -75,13 +81,23 @@ platform :android do
       project_dir: "android"
     )
 
-    supply(
+    # track rides in as env from the dispatch config (src/releases.js
+    # validates it pre-sync): internal / closed (alpha) / open (beta) /
+    # production, plus an optional staged rollout fraction on production.
+    track = ENV.fetch("RELEASE_TRACK", "internal")
+    supply_track = { "internal" => "internal", "closed" => "alpha", "open" => "beta", "production" => "production" }[track]
+    UI.user_error!("unknown android release track: #{track}") unless supply_track
+
+    supply_options = {
       aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH] || "android/app/build/outputs/bundle/release/app-release.aab",
       json_key: ENV.fetch("PLAY_JSON"),
-      track: "internal",
+      track: supply_track,
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
-    )
+    }
+    supply_options[:rollout] = ENV.fetch("ROLLOUT", "") if track == "production" && !ENV.fetch("ROLLOUT", "").empty?
+
+    supply(**supply_options)
   end
 end

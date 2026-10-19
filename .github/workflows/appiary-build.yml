@@ -126,8 +126,11 @@ jobs:
           bundler-cache: true
           working-directory: template
 
-      - name: build and submit (${{ github.event.client_payload.platform }})
+      - name: 'build and submit (${{ github.event.client_payload.platform }})'
         working-directory: template
+        env:
+          RELEASE_TRACK: ${{ github.event.client_payload.config.releaseTrack || '' }}
+          ROLLOUT: ${{ github.event.client_payload.config.rollout || '' }}
         run: bundle exec fastlane ${{ github.event.client_payload.platform }} release
 
       - name: shred secrets and artifacts

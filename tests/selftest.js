@@ -596,6 +596,37 @@ await test('23 runtime docs: notification pattern, permission states, channels s
   assert.ok(r.includes('distribution-channels'), 'readme must link the channels doc')
 })
 
+
+await test('24 release tracks: catalog, platform locks, rollout validation, lanes wired', async () => {
+  const { normalizeReleaseTrack, defaultReleaseTrack, RELEASE_TRACKS } = await import(new URL('../src/releases.js', import.meta.url))
+  assert.equal(defaultReleaseTrack('ios'), 'testflight')
+  assert.equal(defaultReleaseTrack('android'), 'internal')
+  assert.throws(() => normalizeReleaseTrack('ios', 'closed'), /cannot ship to ios/)
+  assert.throws(() => normalizeReleaseTrack('android', 'testflight'), /cannot ship to android/)
+  assert.throws(() => normalizeReleaseTrack('ios', 'aptoide'), /unknown release track/)
+  assert.throws(() => normalizeReleaseTrack('android', 'internal', '0.25'), /rollout only applies to the production track/)
+  assert.throws(() => normalizeReleaseTrack('android', 'production', '1.5'), /fraction/)
+  assert.equal(normalizeReleaseTrack('android', 'closed').supplyTrack, 'alpha')
+  assert.equal(normalizeReleaseTrack('android', 'open').supplyTrack, 'beta')
+  assert.equal(normalizeReleaseTrack('ios', 'appstore').fastlane.submit_for_review, true)
+  assert.equal(normalizeReleaseTrack('android', 'production', '0.25').track, 'production')
+
+  const ff = readFileSync(new URL('../template/fastlane/Fastfile', import.meta.url), 'utf8')
+  assert.ok(ff.includes('RELEASE_TRACK'), 'ios lane must read the track from env')
+  assert.ok(ff.includes('"closed" => "alpha"'), 'android lane must map closed to the alpha track')
+  assert.ok(ff.includes('"open" => "beta"'), 'android lane must map open to the beta track')
+  assert.ok(ff.includes('track == "appstore"'), 'appstore track must gate submit_for_review')
+  assert.ok(ff.includes('ROLLOUT'), 'staged rollout must reach supply')
+
+  const wf = readFileSync(new URL('../.github/workflows/appiary-build.yml', import.meta.url), 'utf8')
+  assert.ok(wf.includes('RELEASE_TRACK'), 'dispatch config must carry the track to the runner')
+
+  const dc = readFileSync(new URL('../docs/distribution-channels.md', import.meta.url), 'utf8')
+  for (const needle of ['release tracks: test users vs regular users', 'testflight (default)', 'staged rollout', 'monotonic']) {
+    assert.ok(dc.includes(needle), `distribution-channels doc missing ${needle}`)
+  }
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1

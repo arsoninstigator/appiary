@@ -39,6 +39,7 @@ const {
 const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference, patchXcodeVersions } =
   await import(`file://${join(srcRoot, 'runtime-patch.js')}`)
 const { normalizeChannel, CHANNELS } = await import(`file://${join(srcRoot, 'channels.js')}`)
+const { normalizeReleaseTrack } = await import(`file://${join(srcRoot, 'releases.js')}`)
 
 const [phase, platformArg] = process.argv.slice(2)
 if (phase !== 'pre' && phase !== 'post') {
@@ -73,7 +74,8 @@ if (phase === 'pre') {
     pkg.devDependencies[dep] = pkg.devDependencies[dep] || '^8.0.0'
   }
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
-  console.log(`pre: channel ${channel.name}, ${permissions.length} declared capabilities`)
+  normalizeReleaseTrack(platform, config.releaseTrack, config.rollout)
+  console.log(`pre: channel ${channel.name}, track ${config.releaseTrack || 'default'}, ${permissions.length} declared capabilities`)
   process.exit(0)
 }
 
