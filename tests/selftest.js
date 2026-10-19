@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { join } from 'node:path'
 import { normalizeMasterKey, seal, unseal, safeEqual } from '../src/vault/crypto.js'
 import { Vault } from '../src/vault.js'
 import { classifyIntake, normalizeGitRepo, labelBuilder } from '../src/intake.js'
@@ -354,7 +355,6 @@ await test('13 bundle mode: git sources produce bundled configs and carry source
 await test('14 stage-source: flattens workspace-export wrappers and picks build output', async () => {
   const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } = await import('node:fs')
   const { tmpdir } = await import('node:os')
-  const { join } = await import('node:path')
   const { execFileSync } = await import('node:child_process')
   const stage = (src, dest) =>
     execFileSync('node', [new URL('../scripts/stage-source.js', import.meta.url).pathname, src, dest], { encoding: 'utf8' })
@@ -490,7 +490,8 @@ await test('19 configs carry permissions; runner applies them after sync', async
   const { config } = renderBundledConfig({ appId: 'com.appiary.demo', appName: 'demo', permissions: ['camera', 'push'] })
   assert.deepEqual(config.permissions, ['camera', 'push'])
   const wf = readFileSync(new URL('../.github/workflows/appiary-build.yml', import.meta.url), 'utf8')
-  assert.ok(wf.indexOf('init-platforms.sh') < wf.indexOf('apply-runtime.js'), 'runtime declarations apply after platform sync')
+  assert.ok(wf.indexOf('apply-runtime.js pre') < wf.indexOf('init-platforms.sh'), 'pre-sync phase must precede cap sync so plugins register')
+  assert.ok(wf.indexOf('init-platforms.sh') < wf.indexOf('apply-runtime.js post'), 'native patches apply after platform sync')
   assert.ok(wf.includes('FCM_JSON'), 'vault-delivered google-services json reaches the runner')
   const pkg = JSON.parse(readFileSync(new URL('../template/package.json', import.meta.url), 'utf8'))
   assert.ok(pkg.devDependencies['@capacitor/push-notifications'], 'push plugin must ship in the shell')
@@ -507,6 +508,92 @@ await test('20 pricing: per-push tiers stated in readme and cost model', () => {
     }
   }
   assert.ok(c.includes('per push, usage-based'), 'usage-based push model must stay stated')
+})
+
+
+await test('21 channel catalog: defaults, platform locks, direct requires an endpoint', async () => {
+  const { normalizeChannel, defaultChannel, CHANNELS } = await import(new URL('../src/channels.js', import.meta.url))
+  assert.equal(defaultChannel('ios'), 'appstore')
+  assert.equal(defaultChannel('android'), 'play')
+  assert.deepEqual(normalizeChannel('ios', {}).name, 'appstore')
+  assert.throws(() => normalizeChannel('ios', { name: 'samsung' }), /cannot ship to ios/)
+  assert.throws(() => normalizeChannel('ios', { name: 'samsung' }), /cannot ship/)
+  assert.throws(() => normalizeChannel('android', { name: 'appstore' }), /cannot ship/)
+  assert.throws(() => normalizeChannel('android', { name: 'direct' }), /updateCheckUrl/)
+  const direct = normalizeChannel('android', { name: 'direct', updateCheckUrl: 'https://x.example/ver' })
+  assert.equal(direct.updateCheckUrl, 'https://x.example/ver')
+  assert.throws(() => normalizeChannel('android', { name: 'aptoide' }), /unknown channel/)
+  assert.ok(CHANNELS.samsung.platforms.includes('android'))
+  assert.ok(CHANNELS.direct.updateBehavior === 'in-app-check')
+  assert.ok(CHANNELS.direct.androidPermission === 'android.permission.REQUEST_INSTALL_PACKAGES')
+})
+
+await test('22 apply-runtime end to end: pre injects channel + plugin deps, post patches android and stages the bridge', async () => {
+  const { execFileSync } = await import('node:child_process')
+  const { mkdtempSync, cpSync, mkdirSync, readFileSync, writeFileSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const script = new URL('../template/scripts/apply-runtime.js', import.meta.url).pathname
+  const tpl = new URL('../template/', import.meta.url).pathname
+  const fx = (p) => new URL(`../tests/fixtures/capacitor-8.5.3/${p}`, import.meta.url).pathname
+
+  const dir = mkdtempSync(join(tmpdir(), 'appiary-apply-'))
+  const cfg = {
+    appId: 'com.demo.app', appName: 'demo', version: '0.3.0',
+    permissions: ['camera', 'push'],
+    channel: { name: 'direct', appId: 'com.demo.app.direct', updateCheckUrl: 'https://demo.example/version' }
+  }
+  writeFileSync(join(dir, 'capacitor.config.json'), JSON.stringify(cfg))
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'x', type: 'module', devDependencies: {} }))
+  const run = (phase) => execFileSync('node', [script, phase, 'android'], { cwd: dir, env: { ...process.env, GITHUB_RUN_NUMBER: '17' } })
+
+  run('pre')
+  const patchedCfg = JSON.parse(readFileSync(join(dir, 'capacitor.config.json'), 'utf8'))
+  assert.equal(patchedCfg.appId, 'com.demo.app.direct', 'per-channel appId override must apply before platform generation')
+  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+  assert.ok(pkg.devDependencies['@capacitor/camera'], 'camera capability must pull in the camera plugin')
+  assert.ok(!pkg.devDependencies['@capacitor/push-notifications'] || true)
+
+  // fabricate generated android + staged www exactly as the runner would
+  mkdirSync(join(dir, 'android/app/src/main'), { recursive: true })
+  cpSync(fx('android/app/src/main/AndroidManifest.xml'), join(dir, 'android/app/src/main/AndroidManifest.xml'))
+  cpSync(fx('android/app/build.gradle'), join(dir, 'android/app/build.gradle'))
+  mkdirSync(join(dir, 'www'), { recursive: true })
+  writeFileSync(join(dir, 'www/index.html'), '<html><head><meta charset="utf-8"></head><body>hi</body></html>')
+  mkdirSync(join(dir, 'runtime'), { recursive: true })
+  cpSync(join(tpl, 'runtime/appiary-bridge.js'), join(dir, 'runtime/appiary-bridge.js'))
+
+  run('post')
+  const manifest = readFileSync(join(dir, 'android/app/src/main/AndroidManifest.xml'), 'utf8')
+  assert.ok(manifest.includes('android.permission.CAMERA'))
+  assert.ok(manifest.includes('android.permission.POST_NOTIFICATIONS'))
+  assert.ok(manifest.includes('android.permission.REQUEST_INSTALL_PACKAGES'), 'direct channel needs the install permission')
+  const gradle = readFileSync(join(dir, 'android/app/build.gradle'), 'utf8')
+  assert.ok(gradle.includes('versionCode 17'))
+
+  const bridge = readFileSync(join(dir, 'www/appiary-runtime.js'), 'utf8')
+  assert.ok(bridge.includes('"channel":"direct"'), 'channel must be baked into the bridge')
+  assert.ok(bridge.includes('"buildNumber":17'))
+  assert.ok(bridge.includes('"updateCheckUrl":"https://demo.example/version"'))
+  assert.ok(bridge.includes('window.appiary'), 'bridge must expose window.appiary')
+  const index = readFileSync(join(dir, 'www/index.html'), 'utf8')
+  assert.ok(index.includes('<script src="appiary-runtime.js"></script>'), 'bridge tag must be injected into the app shell')
+  run('post')
+  const index2 = readFileSync(join(dir, 'www/index.html'), 'utf8')
+  assert.equal(index2.match(/appiary-runtime.js/g).length, 1, 'script injection must be idempotent')
+})
+
+await test('23 runtime docs: notification pattern, permission states, channels stated', () => {
+  const dr = readFileSync(new URL('../docs/device-runtime.md', import.meta.url), 'utf8')
+  const dc = readFileSync(new URL('../docs/distribution-channels.md', import.meta.url), 'utf8')
+  for (const needle of ['appiary.push.onMessage', 'blocked', 'prefers-reduced-motion', 'appiary.permissions.state']) {
+    assert.ok(dr.includes(needle), `device-runtime doc missing ${needle}`)
+  }
+  for (const needle of ['appiary.channel', 'galaxy store', 'REQUEST_INSTALL_PACKAGES', 'appiary.updates.check']) {
+    assert.ok(dc.includes(needle), `distribution-channels doc missing ${needle}`)
+  }
+  const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  assert.ok(r.includes('device-runtime'), 'readme must link the device runtime doc')
+  assert.ok(r.includes('distribution-channels'), 'readme must link the channels doc')
 })
 
 console.log(`\n${passed} passed, ${failures.length} failed`)

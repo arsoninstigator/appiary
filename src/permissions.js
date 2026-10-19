@@ -101,3 +101,59 @@ export function pushEntitlements() {
 </plist>
 `
 }
+
+/**
+ * runtime surface per permission: how the web app asks for it and reads its
+ * state once the app is on a real device.
+ *
+ * - capacitor plugins are installed by apply-runtime pre-sync when the
+ *   capability is declared, so state queries are always backed by an
+ *   installed plugin (or a documented web api for microphone, which has no
+ *   core capacitor plugin).
+ * - the bridge (template/runtime/appiary-bridge.js) normalizes every
+ *   plugin's state vocabulary to: granted | prompt | blocked | unknown.
+ *   "blocked" means the os will not show the system dialog again (ios
+ *   denial or android prompt-with-rationale); recovery runs through system
+ *   settings, so feature gating should treat it as "offer the fallback ui".
+ */
+export const RUNTIME_SURFACE = {
+  camera: {
+    plugin: '@capacitor/camera',
+    /** camera + photo library both resolve through the camera plugin:
+     *  the picker (CameraSource.Photos) IS the photo-library path, so one
+     *  dependency covers both capabilities. */
+    pluginStateKey: 'camera'
+  },
+  photoLibrary: {
+    plugin: '@capacitor/camera',
+    pluginStateKey: 'photos'
+  },
+  microphone: {
+    plugin: null,
+    /** no core capacitor plugin exists; the webview's own media api asks,
+     *  and the injected plist keys make the os dialog legal. */
+    via: 'navigator.mediaDevices.getUserMedia'
+  },
+  location: {
+    plugin: '@capacitor/geolocation',
+    pluginStateKey: 'location'
+  },
+  push: {
+    plugin: '@capacitor/push-notifications',
+    pluginStateKey: 'receive'
+  }
+}
+
+/**
+ * capacitor plugin dependencies implied by the declared capabilities.
+ * camera and photo library share @capacitor/camera; push and local
+ * notifications ship in the shell unconditionally.
+ */
+export function pluginDependenciesFor(list = []) {
+  const out = new Set()
+  for (const id of normalizePermissions(list)) {
+    const plugin = RUNTIME_SURFACE[id].plugin
+    if (plugin && id !== 'push') out.add(plugin)
+  }
+  return [...out]
+}

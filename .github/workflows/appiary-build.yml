@@ -101,16 +101,23 @@ jobs:
           cd ..
           node scripts/stage-source.js webapp template/www
 
-      - name: sync capacitor project
+      - name: 'runtime: declarations (pre-sync)'
+        working-directory: template
+        env:
+          FCM_JSON: ${{ env.FCM_JSON }}
+        run: node scripts/apply-runtime.js pre "${{ github.event.client_payload.platform }}"
+
+      - name: 'runtime: sync capacitor project'
         working-directory: template
         run: |
           npm install
           sh scripts/init-platforms.sh "${{ github.event.client_payload.platform }}"
-      - name: apply runtime declarations
+
+      - name: 'runtime: native patches (post-sync)'
         working-directory: template
         env:
           FCM_JSON: ${{ env.FCM_JSON }}
-        run: node scripts/apply-runtime.js
+        run: node scripts/apply-runtime.js post "${{ github.event.client_payload.platform }}"
 
       - name: set up ruby and fastlane
         uses: ruby/setup-ruby@v1

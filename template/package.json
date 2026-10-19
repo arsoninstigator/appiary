@@ -20,5 +20,6 @@
   },
   "capacitor": {
     "enabled": {}
-  }
+  },
+  "type": "module"
 }
