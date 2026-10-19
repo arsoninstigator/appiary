@@ -25,7 +25,7 @@ const srcRoot = join(here, '..', '..', 'src')
 const {
   iosUsageDescriptions, androidPermissions, needsPushEntitlement, pushEntitlements
 } = await import(`file://${join(srcRoot, 'permissions.js')}`)
-const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference } =
+const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference, patchXcodeVersions } =
   await import(`file://${join(srcRoot, 'runtime-patch.js')}`)
 
 const config = JSON.parse(readFileSync('capacitor.config.json', 'utf8'))
@@ -46,10 +46,12 @@ if (existsSync('ios/App/App/Info.plist')) {
   }
   sh('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleVersion ${runNumber}`, 'ios/App/App/Info.plist'])
   sh('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleShortVersionString ${config.version}`, 'ios/App/App/Info.plist'])
+  const pbxPath = 'ios/App/App.xcodeproj/project.pbxproj'
+  const pbx = readFileSync(pbxPath, 'utf8')
+  writeFileSync(pbxPath, patchXcodeVersions(pbx, { version: config.version, buildNumber: runNumber }))
   if (needsPushEntitlement(permissions)) {
     writeFileSync('ios/App/App/App.entitlements', pushEntitlements())
-    const pbx = readFileSync('ios/App/App.xcodeproj/project.pbxproj', 'utf8')
-    writeFileSync('ios/App/App.xcodeproj/project.pbxproj', patchEntitlementsReference(pbx))
+    writeFileSync(pbxPath, patchEntitlementsReference(readFileSync(pbxPath, 'utf8')))
   }
 }
 

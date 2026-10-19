@@ -449,21 +449,40 @@ await test('17 permissions catalog: usage descriptions, manifest entries, entitl
   assert.ok(failed, 'unknown permission ids must throw')
 })
 
-await test('18 runtime patches: manifest, gradle version code, pbxproj entitlements', async () => {
-  const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference } =
+await test('18 runtime patches verified against real capacitor 8.5.3 templates', async () => {
+  const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference, patchXcodeVersions } =
     await import(new URL('../src/runtime-patch.js', import.meta.url))
-  const manifest = '<?xml version="1.0"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <application\n        android:name=".MainApplication" >\n    </application>\n</manifest>\n'
+  const fx = (p) => readFileSync(new URL(`../tests/fixtures/capacitor-8.5.3/${p}`, import.meta.url), 'utf8')
+
+  // android manifest: real template, permission lands before <application
+  const manifest = fx('android/app/src/main/AndroidManifest.xml')
   const patched = patchAndroidManifest(manifest, ['android.permission.CAMERA'])
   assert.ok(patched.includes('<uses-permission android:name="android.permission.CAMERA" />'))
   assert.ok(patched.indexOf('uses-permission') < patched.indexOf('<application'), 'permissions go before the application tag')
-  const again = patchAndroidManifest(patched, ['android.permission.CAMERA'])
-  assert.equal(again, patched, 'manifest patch must be idempotent')
-  const gradle = 'android {\n    defaultConfig {\n        versionCode 1\n        versionName "1.0"\n    }\n}\n'
+  assert.equal(patchAndroidManifest(patched, ['android.permission.CAMERA']), patched, 'manifest patch must be idempotent')
+
+  // android gradle: real template carries versionCode 1
+  const gradle = fx('android/app/build.gradle')
+  assert.ok(gradle.includes('versionCode 1'))
   assert.ok(patchVersionCode(gradle, 42).includes('versionCode 42'))
-  const pbx = 'buildSettings = {\n\t\t\t\t\t\tPRODUCT_NAME = "$(TARGET_NAME:-App)";\n\t\t\t\t\t\tSDKROOT = iphoneos;\n\t\t\t\t\t};'
-  const pbxPatched = patchEntitlementsReference(pbx)
-  assert.ok(pbxPatched.includes('CODE_SIGN_ENTITLEMENTS = App/App.entitlements;'))
-  assert.equal(patchEntitlementsReference(pbxPatched), pbxPatched, 'pbxproj patch must be idempotent')
+
+  // ios plist: the real plist carries the keys plistbuddy sets
+  const plist = fx('ios/App/Info.plist')
+  assert.ok(plist.includes('<key>CFBundleVersion</key>'), 'plistbuddy Set CFBundleVersion needs the key')
+  assert.ok(plist.includes('<key>CFBundleShortVersionString</key>'))
+
+  // ios pbxproj: anchors exist in the real project, xcode versions patched
+  const pbx = fx('ios/App/App.xcodeproj/project.pbxproj')
+  assert.ok(pbx.includes('PRODUCT_NAME = "$(TARGET_NAME)";'), 'anchor must match the real template')
+  assert.ok(!pbx.includes('CODE_SIGN_ENTITLEMENTS'), 'template ships without entitlements reference')
+  const vPatched = patchXcodeVersions(pbx, { version: '0.2.0', buildNumber: 7 })
+  assert.ok(!vPatched.includes('CURRENT_PROJECT_VERSION = 1;'), 'xcode build number must not stay 1')
+  assert.ok(vPatched.includes('MARKETING_VERSION = 0.2.0;'))
+  const ePatched = patchEntitlementsReference(vPatched)
+  const refs = ePatched.split('CODE_SIGN_ENTITLEMENTS = App/App.entitlements;').length - 1
+  assert.equal(refs, 2, 'entitlements reference must reach debug and release blocks')
+  assert.ok(ePatched.includes('TARGETED_DEVICE_FAMILY = "1,2"') || pbx.includes('TARGETED_DEVICE_FAMILY = "1,2"'), 'universal iphone+ipad stays intact')
+  assert.equal(patchEntitlementsReference(ePatched), ePatched, 'pbxproj patch must be idempotent')
 })
 
 await test('19 configs carry permissions; runner applies them after sync', async () => {
