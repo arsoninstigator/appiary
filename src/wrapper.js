@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { normalizePermissions } from './permissions.js'
 
 /**
  * step 1: client runtime wrapper.
@@ -40,7 +41,9 @@ export function renderCapacitorConfig({
   appId,
   appName,
   version = '0.1.0',
-  allowInsecureWeb = false
+  allowInsecureWeb = false,
+  permissions = [],
+  permissionDescriptions = {}
 } = {}) {
   if (!webUrl) throw new Error('webUrl is required')
   if (!appId || !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}$/.test(appId)) {
@@ -73,6 +76,8 @@ export function renderCapacitorConfig({
     throw new Error('template render failed to inject server.url')
   }
   config.version = version
+  config.permissions = normalizePermissions(permissions)
+  config.permissionDescriptions = permissionDescriptions
   return { config, warnings }
 }
 
@@ -85,7 +90,7 @@ export function capacitorConfigJson(config) {
  * bundle mode: the web app is built by the runner and shipped inside the
  * binary. no server.url, no live-reload caveat, sturdier for app review.
  */
-export function renderBundledConfig({ appId, appName, version = '0.1.0' } = {}) {
+export function renderBundledConfig({ appId, appName, version = '0.1.0', permissions = [], permissionDescriptions = {} } = {}) {
   if (!appId || !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}$/.test(appId)) {
     throw new Error('appId must be reverse-domain style, e.g. com.appiary.demo')
   }
@@ -96,6 +101,8 @@ export function renderBundledConfig({ appId, appName, version = '0.1.0' } = {}) 
     .replaceAll('{{APP_NAME}}', JSON.stringify(appName).slice(1, -1))
   const config = JSON.parse(rendered)
   config.version = version
+  config.permissions = normalizePermissions(permissions)
+  config.permissionDescriptions = permissionDescriptions
   if ('server' in config) throw new Error('bundled template must not configure server.url')
   return { config, warnings: ['bundle mode: web assets are baked into the binary; updates need a new upload'] }
 }

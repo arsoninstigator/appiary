@@ -423,11 +423,59 @@ await test('16 bundle-runtime doc: lanes stay covered and store rules stay state
     'stripe checkout',
     '3.1.1',
     'never stripe for digital on ios',
+    'aps-environment',
+    'POST_NOTIFICATIONS',
+    'GITHUB_RUN_NUMBER',
     'server.iosScheme',
     'server.androidScheme'
   ]) {
     assert.ok(d.includes(needle), `bundle-runtime doc missing ${needle}`)
   }
+})
+
+
+await test('17 permissions catalog: usage descriptions, manifest entries, entitlements', async () => {
+  const m = await import(new URL('../src/permissions.js', import.meta.url))
+  const list = ['camera', 'push']
+  const ios = m.iosUsageDescriptions(list, { camera: 'custom camera string' })
+  assert.equal(ios.NSCameraUsageDescription, 'custom camera string')
+  assert.ok(!('NSMicrophoneUsageDescription' in ios))
+  assert.deepEqual(m.androidPermissions(list), ['android.permission.CAMERA', 'android.permission.POST_NOTIFICATIONS'])
+  assert.ok(m.needsPushEntitlement(list))
+  assert.ok(!m.needsPushEntitlement(['camera']))
+  assert.ok(m.pushEntitlements().includes('<string>production</string>'))
+  let failed = false
+  try { m.normalizePermissions(['camera', 'carrier-pigeon']) } catch { failed = true }
+  assert.ok(failed, 'unknown permission ids must throw')
+})
+
+await test('18 runtime patches: manifest, gradle version code, pbxproj entitlements', async () => {
+  const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference } =
+    await import(new URL('../src/runtime-patch.js', import.meta.url))
+  const manifest = '<?xml version="1.0"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n    <application\n        android:name=".MainApplication" >\n    </application>\n</manifest>\n'
+  const patched = patchAndroidManifest(manifest, ['android.permission.CAMERA'])
+  assert.ok(patched.includes('<uses-permission android:name="android.permission.CAMERA" />'))
+  assert.ok(patched.indexOf('uses-permission') < patched.indexOf('<application'), 'permissions go before the application tag')
+  const again = patchAndroidManifest(patched, ['android.permission.CAMERA'])
+  assert.equal(again, patched, 'manifest patch must be idempotent')
+  const gradle = 'android {\n    defaultConfig {\n        versionCode 1\n        versionName "1.0"\n    }\n}\n'
+  assert.ok(patchVersionCode(gradle, 42).includes('versionCode 42'))
+  const pbx = 'buildSettings = {\n\t\t\t\t\t\tPRODUCT_NAME = "$(TARGET_NAME:-App)";\n\t\t\t\t\t\tSDKROOT = iphoneos;\n\t\t\t\t\t};'
+  const pbxPatched = patchEntitlementsReference(pbx)
+  assert.ok(pbxPatched.includes('CODE_SIGN_ENTITLEMENTS = App/App.entitlements;'))
+  assert.equal(patchEntitlementsReference(pbxPatched), pbxPatched, 'pbxproj patch must be idempotent')
+})
+
+await test('19 configs carry permissions; runner applies them after sync', async () => {
+  const { renderBundledConfig } = await import(new URL('../src/wrapper.js', import.meta.url))
+  const { config } = renderBundledConfig({ appId: 'com.appiary.demo', appName: 'demo', permissions: ['camera', 'push'] })
+  assert.deepEqual(config.permissions, ['camera', 'push'])
+  const wf = readFileSync(new URL('../.github/workflows/appiary-build.yml', import.meta.url), 'utf8')
+  assert.ok(wf.indexOf('init-platforms.sh') < wf.indexOf('apply-runtime.js'), 'runtime declarations apply after platform sync')
+  assert.ok(wf.includes('FCM_JSON'), 'vault-delivered google-services json reaches the runner')
+  const pkg = JSON.parse(readFileSync(new URL('../template/package.json', import.meta.url), 'utf8'))
+  assert.ok(pkg.devDependencies['@capacitor/push-notifications'], 'push plugin must ship in the shell')
+  assert.ok(pkg.devDependencies['@capacitor/local-notifications'], 'local notifications plugin must ship in the shell')
 })
 
 console.log(`\n${passed} passed, ${failures.length} failed`)

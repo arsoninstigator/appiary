@@ -51,7 +51,21 @@ rule: the login dance happens where an https origin exists (system browser,
 or provider support for the capacitor scheme), and everything after the
 token is lane 1.
 
-## lane 3: money
+## lane 3: push notifications
+
+the shell ships `@capacitor/push-notifications` and
+`@capacitor/local-notifications`. the device token surfaces to the webview
+through the plugin js bridge; the user's own backend does the sending with
+their own fcm / apns keys (google-services.json rides through the vault like
+every other credential file). appiary never proxies pushes.
+
+declaring the push permission drives the native plumbing at build time: the
+ios app gets the aps-environment entitlement and the android manifest gets
+POST_NOTIFICATIONS. ios also needs the push capability toggled once in the
+apple developer portal (one-time user action; automating it via the
+app store connect api is a follow-up).
+
+## lane 4: money
 
 two different jobs, and the split is forced by the app stores:
 
@@ -76,6 +90,32 @@ two different jobs, and the split is forced by the app stores:
 rule: digital -> revenuecat/native iap, real-world -> hosted stripe checkout,
 never stripe for digital on ios.
 
+## permissions and accessibility
+
+apple crashes apps that request a capability without a usage description,
+so permissions are a first-class intake field: the user declares which
+capabilities the app needs (camera, microphone, location, photo library,
+push), optionally overrides the default lowercase usage strings, and the
+runner injects every declaration at build time (plist entries on ios,
+manifest entries on android). defaults ship for all of them, so the common
+case is one checkbox.
+
+accessibility is mostly inheritance: the webview follows the system's dark
+mode, dynamic type, reduced motion, and voiceover, and the web app's
+accessibility tree passes straight through. the shell adds nothing custom;
+wcag compliance stays the web app's own work, which is exactly what "your
+app, native shell" means.
+
+## updates from the dashboard
+
+- **wrap mode:** content updates are instant by nature (the webview streams
+  the live site); a rebuild is only needed when native bits change.
+- **bundle mode:** the update button re-runs the pipeline with fresh source.
+  build numbers derive from the github run number (`GITHUB_RUN_NUMBER`), so every build is
+  monotonically newer in both stores without any manual bumping.
+- ota web-asset hotpatches are a v2 item: bundle mode makes them rarer
+  (content edits are the usual churn), and they cannot ship native changes.
+
 ## summary for the dashboard
 
 | call | works in bundle mode? | user config |
@@ -84,3 +124,5 @@ never stripe for digital on ios.
 | oauth | yes, via scheme | add the capacitor scheme to provider url config |
 | digital iap | yes, native lane | revenuecat sdk keys (premium add-on) |
 | stripe (physical) | yes, hosted checkout | return url = app scheme |
+| push | yes, native lane | push capability in apple portal + fcm keys |
+| permissions | injected at build | declare capabilities + usage strings |

@@ -44,6 +44,11 @@ appId, so regenerated platforms come out branded to their bundle id.
 
 - **wrap mode:** the web url goes into `server.url`; the webview streams the
   live app with native bridging enabled.
+- **permissions:** declared at intake (camera, microphone, location, photo
+  library, push) with optional usage-description overrides; the runner
+  injects plist keys, manifest entries, and the push entitlement at build
+  time via `template/scripts/apply-runtime.js`. details in
+  docs/bundle-runtime.md.
 - **bundle mode:** the staged build lands in `www/` and ships inside the
   binary; no server.url at all.
 
