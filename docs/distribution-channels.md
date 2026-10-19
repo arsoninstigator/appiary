@@ -106,5 +106,15 @@ so 25% of users get the update first; the owner promotes 100% from the
 console after watching crash rates. rollout only applies to production,
 validated pre-build.
 
+**version history, including test releases**: every push - production
+or test track - is one monotonic build number, and the stores keep
+their own history per track (testflight build history in app store
+connect, per-track version history in the play console). nothing is
+ephemeral from the store's perspective: a testflight or internal-track
+release is a real, addressable version with its own row, and the build
+number is the spine that ties dashboard history to both consoles. our
+own bookkeeping keeps the run number alongside the push record so the
+history survives even the deletion of a build from a track.
+
 each track push is its own pipeline run and store artifact, priced per
 push.

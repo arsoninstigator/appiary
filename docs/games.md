@@ -98,10 +98,13 @@ paste the resource ids into the web app. app store connect - enable
 game center and declare the same. the ids are ordinary constants in the
 owner's web code; nothing appiary-specific about them.
 
-honest status: the plugin's api calls are verified against the play
-games v2 and gamekit docs, but it has never been compiled - there is no
-mac and no android sdk in this room. the first `gameServices` push is
-its compile test, and that is stated here rather than implied.
+honest status: the android half **compiles on a clean linux vm** -
+verified end to end (sdk bootstrap, cap add, sync, patches, gradle
+assembleDebug producing a real apk) on a disposable cloud machine, so
+the java, the gradle wiring, and the MainActivity injection are all
+proven. the ios half (game center swift) is verified against the
+gamekit docs but not compiled - there is no mac - so the first ios
+`gameServices` push remains its compile test.
 
 one more honest limit: google play games on pc (the desktop program)
 requires native pc-compatible builds; webview games are not eligible.

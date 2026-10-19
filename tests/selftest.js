@@ -622,7 +622,7 @@ await test('24 release tracks: catalog, platform locks, rollout validation, lane
   assert.ok(wf.includes('RELEASE_TRACK'), 'dispatch config must carry the track to the runner')
 
   const dc = readFileSync(new URL('../docs/distribution-channels.md', import.meta.url), 'utf8')
-  for (const needle of ['release tracks: test users vs regular users', 'testflight (default)', 'staged rollout', 'monotonic']) {
+  for (const needle of ['release tracks: test users vs regular users', 'testflight (default)', 'staged rollout', 'monotonic', 'version history, including test releases']) {
     assert.ok(dc.includes(needle), `distribution-channels doc missing ${needle}`)
   }
 })
@@ -714,7 +714,8 @@ await test('26 gameServices capability: entitlements, first-party plugin, runtim
   const g = readFileSync(new URL('../docs/games.md', import.meta.url), 'utf8')
   assert.ok(g.includes('gameServices'), 'games doc must document the capability')
   assert.ok(g.includes('retired v1'), 'the dead ecosystem plugin must be called out')
-  assert.ok(g.includes('never been compiled'), 'compile status must be stated honestly')
+  assert.ok(g.includes('compiles on a clean linux vm'), 'android compile status must be stated')
+  assert.ok(g.includes('not compiled'), 'ios compile status must stay honest')
 })
 
 
