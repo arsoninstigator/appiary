@@ -7,7 +7,10 @@
  *  - a git repo url (github, gitlab, bitbucket, gitea) for users who can get
  *    their code out of the ai tool. this is bundle mode: the runner builds
  *    the web app and ships it inside the app binary.
- *  - a zip artifact url. also bundle mode.
+ *  - a zip artifact url. also bundle mode. this includes workspace-export
+ *    zips from exporter tools (e.g. codejack, which downloads a user's whole
+ *    ai-builder workspace as a zip or json): the runner's staging script
+ *    flattens the wrapper folder these exports usually add.
  * bundle mode produces a real bundled app with no server.url, which is the
  * sturdier answer to app review (see docs/architecture.md).
  */

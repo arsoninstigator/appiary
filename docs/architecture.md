@@ -19,7 +19,14 @@ appiary meets customers wherever their ai tool leaves them:
   `/branch/<ref>`, `/src/branch/<ref>`). the runner clones, builds the web
   app (`npm ci && npm run build`), and stages the output into `www/`.
 - **zip (bundle mode):** an uploaded artifact url; the runner unpacks and
-  stages it the same way.
+  stages it the same way. workspace exporter tools (e.g. codejack, a
+  browser extension that downloads a user's entire lovable / base44 /
+  bolt.new / zite.so / emergent / replit workspace as a zip or json) feed
+  this path directly: codejack gets the code out, appiary turns it into a
+  native app. exporter zips usually wrap everything in one top-level
+  folder, so `scripts/stage-source.js` flattens wrappers, picks the build
+  output (dist / build / out / public), strips node_modules, and validates
+  index.html before `npx cap sync`.
 
 bundle mode ships the web assets *inside* the binary (no `server.url`), which
 sidesteps capacitor's live-reload-only caveat and is the sturdier shape for

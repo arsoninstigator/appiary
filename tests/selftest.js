@@ -273,7 +273,8 @@ await test('11 runner assets: workflow redeems before build and shreds after', (
   assert.ok(wf.includes('timeout-minutes: 45'), 'build timeout must be capped for margin safety')
   assert.ok(wf.includes("source.mode == 'bundle-git'"), 'workflow must clone git sources')
   assert.ok(wf.includes("source.mode == 'bundle-zip'"), 'workflow must fetch zip sources')
-  assert.ok(wf.includes('no index.html staged'), 'staged www must be validated')
+  assert.ok(wf.includes('stage-source.js'), 'staging must go through the stage script')
+  assert.ok(wf.indexOf('stage www/') < wf.indexOf('sync capacitor project'), 'www must be staged before cap sync')
   assert.ok(wf.indexOf('stage www/') < wf.indexOf('sync capacitor project'), 'www must be staged before cap sync')
   assert.ok(wf.includes('delete-keychain'))
   const fastfile = readFileSync(new URL('../template/fastlane/Fastfile', import.meta.url), 'utf8')
@@ -343,6 +344,52 @@ await test('13 bundle mode: git sources produce bundled configs and carry source
   const body = JSON.parse(ghFetch.calls[0].init.body)
   assert.equal(body.client_payload.source.mode, 'bundle-git')
   assert.equal(body.client_payload.source.repo, 'https://github.com/acme/webapp')
+})
+
+
+await test('14 stage-source: flattens workspace-export wrappers and picks build output', async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { execFileSync } = await import('node:child_process')
+  const stage = (src, dest) =>
+    execFileSync('node', [new URL('../scripts/stage-source.js', import.meta.url).pathname, src, dest], { encoding: 'utf8' })
+
+  const tmp = mkdtempSync(join(tmpdir(), 'appiary-stage-'))
+  try {
+    // codejack-style export: everything wrapped in one top-level folder
+    const wrapped = join(tmp, 'exported-workspace')
+    mkdirSync(join(wrapped, 'my-lovable-app'), { recursive: true })
+    writeFileSync(join(wrapped, 'my-lovable-app', 'package.json'), JSON.stringify({ name: 'x' }))
+    mkdirSync(join(wrapped, 'my-lovable-app', 'dist'))
+    writeFileSync(join(wrapped, 'my-lovable-app', 'dist', 'index.html'), '<html>wrapped</html>')
+    const destA = join(tmp, 'www-a')
+    stage(wrapped, destA)
+    assert.equal(readFileSync(join(destA, 'index.html'), 'utf8'), '<html>wrapped</html>')
+
+    // nested twice, static site: no package.json, index.html at the bottom
+    const nested = join(tmp, 'deep-export')
+    mkdirSync(join(nested, 'outer', 'inner'), { recursive: true })
+    writeFileSync(join(nested, 'outer', 'inner', 'index.html'), '<html>static</html>')
+    const destB = join(tmp, 'www-b')
+    stage(nested, destB)
+    assert.equal(readFileSync(join(destB, 'index.html'), 'utf8'), '<html>static</html>')
+
+    // not a web app: error is lowercase and non-zero exit
+    const notApp = join(tmp, 'not-an-app')
+    mkdirSync(notApp)
+    writeFileSync(join(notApp, 'readme.md'), 'nope')
+    let failed = false
+    try {
+      execFileSync('node', [new URL('../scripts/stage-source.js', import.meta.url).pathname, notApp, join(tmp, 'www-c')])
+    } catch (e) {
+      failed = true
+      assert.ok(!e.stderr.toString().match(/[A-Z]/), 'stderr must stay lowercase')
+    }
+    assert.ok(failed, 'staging a non-web-app must fail')
+  } finally {
+    rmSync(tmp, { recursive: true, force: true })
+  }
 })
 
 console.log(`\n${passed} passed, ${failures.length} failed`)
