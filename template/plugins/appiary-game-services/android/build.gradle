@@ -27,6 +27,8 @@ repositories {
 def androidxAppCompatVersion = project.hasProperty('androidxAppCompatVersion') ? rootProject.ext.androidxAppCompatVersion : '1.7.1'
 dependencies {
   implementation "androidx.appcompat:appcompat:${androidxAppCompatVersion}"
-  implementation "com.google.android.gms:play-services-games-v2:22.1.0"
+  // api (not implementation): the patched MainActivity references PlayGamesSdk
+  // directly, so the sdk must be visible to the app module that consumes this
+  api "com.google.android.gms:play-services-games-v2:22.1.0"
   implementation project(':capacitor-android')
 }
