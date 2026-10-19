@@ -57,7 +57,9 @@ or customer demand justifies it, not on the calendar.
   idea on another axis. interesting later; the intake layer already produces
   a buildable web source, so a tauri target would reuse steps 0 and the
   store logic, but desktop signing/notarization is a separate problem.
-- **cli tools:** a programmatic appiary for terminal users. the pipeline is
+- **cli tools:** a programmatic appiary for terminal users.
+- **macos / watchos:** macos needs mac catalyst (different pipeline and
+  signing story); watchos is not a capacitor target. both stay parked here. the pipeline is
   already a node library with a cli surface; a public cli is mostly auth and
   packaging work, not new architecture.
 

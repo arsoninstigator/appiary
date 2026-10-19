@@ -34,9 +34,44 @@ app review. code: `src/intake.js` (classify/normalize), `src/wrapper.js`
 
 ## step 1: client runtime wrapper
 
-- **oss tool used:** capacitor (by ionic), verified against the v8 config schema (current stable 8.5.3; v9 is alpha). note: capacitor documents `server.url` as a live-reload option, "not intended for use in production" - the wrapper emits this warning on every render so store-review risk is explicit.
-- **how we use it:** we maintain an internal, hidden native project template built with capacitor. when a user inputs a lovable web url, our backend injects this url into the capacitor configuration file (`capacitor.config.json`) under the `server.url` property. this wraps the web app instantly inside a native webview container with native bridging enabled.
-- **code:** `src/wrapper.js` renders `template/capacitor.config.template.json`. validation rejects non-http(s) urls, urls with embedded credentials, and plain-http targets unless the caller explicitly opts into cleartext (and gets a store-review warning).
+the hidden native template lives in `template/`: a self-contained capacitor
+project (package.json pinned to capacitor 8.5.x, a `www/` placeholder page,
+fastlane lanes, gemfile). platform folders (`ios/`, `android/`) are
+deliberately not committed: each runner regenerates them with `npx cap add`
+via `template/scripts/init-platforms.sh`, keeping the template small and
+capacitor upgrades painless. the injected config already carries the user's
+appId, so regenerated platforms come out branded to their bundle id.
+
+- **wrap mode:** the web url goes into `server.url`; the webview streams the
+  live app with native bridging enabled.
+- **bundle mode:** the staged build lands in `www/` and ships inside the
+  binary; no server.url at all.
+
+### auth inside wrapped apps
+
+users keep whatever auth their web app already uses: supabase, insforge,
+firebase, clerk, or anything else. in wrap mode the webview runs their real
+web app, so sign-in flows, sessions, and cookies behave exactly as in the
+browser. oauth redirects that need a system browser return through the
+capacitor app scheme. nothing to configure beyond their app link.
+
+### in-app purchases (premium add-on, after v1)
+
+purchases cannot run in plain webview javascript: app store and play billing
+are native-only apis. the path is the official revenuecat capacitor plugin
+compiled into the shell with the user's public sdk keys (delivered through
+the vault like every other credential), entitlements surfaced to the webview
+through the plugin's js bridge, and receipts verified on the user's own
+backend via revenuecat webhooks. scoped as a premium add-on: it touches the
+template, the vault schema, and the workflow.
+
+### device coverage
+
+ios builds are universal: one binary covers iphone and ipad (capacitor's
+xcode template ships with targeted device family 1,2, so the store lists
+the app for both; ipados runs the same ios binary natively). watchos is not
+covered. macos needs mac catalyst, a different build pipeline, parked with
+the desktop rungs on the horizon (see docs/horizon.md).
 
 ## step 2: interactive browser preview
 

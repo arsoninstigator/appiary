@@ -274,6 +274,8 @@ await test('11 runner assets: workflow redeems before build and shreds after', (
   assert.ok(wf.includes("source.mode == 'bundle-git'"), 'workflow must clone git sources')
   assert.ok(wf.includes("source.mode == 'bundle-zip'"), 'workflow must fetch zip sources')
   assert.ok(wf.includes('stage-source.js'), 'staging must go through the stage script')
+  assert.ok(wf.includes('working-directory: template'), 'native build runs inside the template project')
+  assert.ok(wf.includes('init-platforms.sh'), 'platforms regenerate on the runner')
   assert.ok(wf.indexOf('stage www/') < wf.indexOf('sync capacitor project'), 'www must be staged before cap sync')
   assert.ok(wf.indexOf('stage www/') < wf.indexOf('sync capacitor project'), 'www must be staged before cap sync')
   assert.ok(wf.includes('delete-keychain'))
@@ -392,6 +394,22 @@ await test('14 stage-source: flattens workspace-export wrappers and picks build 
   } finally {
     rmSync(tmp, { recursive: true, force: true })
   }
+})
+
+
+await test('15 native template: self-contained capacitor project, runner-generated platforms', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../template/package.json', import.meta.url), 'utf8'))
+  for (const dep of ['@capacitor/cli', '@capacitor/core', '@capacitor/ios', '@capacitor/android', '@capacitor/splash-screen', '@capacitor/status-bar']) {
+    assert.ok(pkg.devDependencies[dep], `template missing ${dep}`)
+  }
+  const gemfile = readFileSync(new URL('../template/Gemfile', import.meta.url), 'utf8')
+  assert.ok(gemfile.includes('fastlane'), 'gemfile must pin fastlane')
+  const init = readFileSync(new URL('../template/scripts/init-platforms.sh', import.meta.url), 'utf8')
+  for (const needle of ['cap add ios', 'cap add android', 'cap sync', 'deliberately not committed']) {
+    assert.ok(init.includes(needle), `init script missing ${needle}`)
+  }
+  const stub = readFileSync(new URL('../template/www/index.html', import.meta.url), 'utf8')
+  assert.ok(stub.toLowerCase().includes('<!doctype html>'), 'www placeholder must be a real page')
 })
 
 console.log(`\n${passed} passed, ${failures.length} failed`)
