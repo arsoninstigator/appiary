@@ -47,13 +47,25 @@ appId, so regenerated platforms come out branded to their bundle id.
 - **bundle mode:** the staged build lands in `www/` and ships inside the
   binary; no server.url at all.
 
-### auth inside wrapped apps
+### auth inside wrapped apps (origin realities)
 
-users keep whatever auth their web app already uses: supabase, insforge,
-firebase, clerk, or anything else. in wrap mode the webview runs their real
-web app, so sign-in flows, sessions, and cookies behave exactly as in the
-browser. oauth redirects that need a system browser return through the
-capacitor app scheme. nothing to configure beyond their app link.
+the webview origin differs by mode, and oauth providers that pin redirect
+uris to https care about this:
+
+- **wrap mode:** the webview serves the user's https site directly, so the
+  page origin is their real domain. sign-in flows, cookies, and redirects
+  behave like a normal browser. this is the easy case.
+- **bundle mode:** assets load from the device, so the origin is the
+  capacitor scheme (`capacitor://localhost` on ios, `https://localhost` on
+  android). https-only redirect uris will not match. the fixes are standard:
+  run the flow in the system browser (the shell ships
+  `@capacitor/browser`) and return through the app scheme, or use auth
+  providers that document capacitor flows natively (supabase deep links,
+  firebase custom schemes). supabase, insforge, and firebase all support
+  this shape; the dashboard surfaces a per-app oauth callback hint once the
+  appId is known.
+
+users keep their own auth either way; appiary never proxies credentials.
 
 ### in-app purchases (premium add-on, after v1)
 
@@ -64,6 +76,16 @@ the vault like every other credential), entitlements surfaced to the webview
 through the plugin's js bridge, and receipts verified on the user's own
 backend via revenuecat webhooks. scoped as a premium add-on: it touches the
 template, the vault schema, and the workflow.
+
+### offline apps
+
+possible today, in bundle mode only: the web assets ship inside the binary,
+so the app shell runs with no network at all. whether the app works offline
+depends on its own code: static apps, tools, and games work as-is; apps
+that call apis degrade the way they degrade in an offline browser. wrap mode
+is online by definition (it streams the live site). advanced offline
+storage can lean on standard web apis plus native sqlite later if customers
+ask for it.
 
 ### device coverage
 

@@ -399,7 +399,7 @@ await test('14 stage-source: flattens workspace-export wrappers and picks build 
 
 await test('15 native template: self-contained capacitor project, runner-generated platforms', () => {
   const pkg = JSON.parse(readFileSync(new URL('../template/package.json', import.meta.url), 'utf8'))
-  for (const dep of ['@capacitor/cli', '@capacitor/core', '@capacitor/ios', '@capacitor/android', '@capacitor/splash-screen', '@capacitor/status-bar']) {
+  for (const dep of ['@capacitor/cli', '@capacitor/core', '@capacitor/ios', '@capacitor/android', '@capacitor/splash-screen', '@capacitor/status-bar', '@capacitor/browser']) {
     assert.ok(pkg.devDependencies[dep], `template missing ${dep}`)
   }
   const gemfile = readFileSync(new URL('../template/Gemfile', import.meta.url), 'utf8')
