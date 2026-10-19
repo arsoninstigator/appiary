@@ -88,5 +88,40 @@ concretely:
   semantics (labels, roles, focus order). nothing is added or subtracted
   by the shell.
 
+**detecting that a screen reader is enabled**: the web has no api for this
+(that it never shipped one is a longstanding web platform gap), so the
+bridge carries the native answer:
+
+```js
+appiary.a11y.screenReader().then(on => { ... })   // voiceover / talkback running
+appiary.a11y.onScreenReaderChange(on => { ... }) // live adaptation as it toggles
+appiary.a11y.speak('streak saved')               // announcement the visual ui cannot carry
+```
+
+use it to enable adaptive modes: richer hint text, larger tap targets,
+spoken confirmations. outside the shell screenReader() resolves false.
+
+## daily rhythms: streaks and per-day actions
+
+for apps with daily streaks (login streaks, practice streaks, daily
+check-ins), the day boundary belongs to the end user's wall clock, not
+the backend's:
+
+- `new Date()` inside the app is device-local time; that is the right
+  basis for "did the user act today". server utc day boundaries produce
+  the classic bug where a streak breaks at 5:30 am or the user gets two
+  days in one sitting.
+- the honest caveat: a device clock is user-adjustable. for casual
+  streaks, trust the device and accept the rare cheat. for streaks with
+  real value (discounts, unlockables), cross-check when online: the
+  backend keeps its own last-seen date and treats device claims as
+  hints, not proof. reconcile drift by comparing server time on app
+  open, not mid-session.
+- reminders ("keep your streak") should be local notifications
+  (`appiary.local.schedule`) with a device-local trigger hour (e.g.
+  9 pm user time), not server-side pushes that land at 3 am. push
+  infrastructure has no per-user timezone awareness unless the owner
+  builds it; the device does.
+
 wcag compliance remains the owner's code's job; the shell's job is to not
 break what the browser already does.

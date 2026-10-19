@@ -129,6 +129,67 @@
       }
     },
 
+    /**
+     * screen reader detection: ios voiceover, android talkback. unlike
+     * media queries this has no web api; it needs the native plugin. also
+     * exposes speak() for status announcements the visual ui cannot carry
+     * (e.g. "streak saved") and a change listener for live adaptation.
+     */
+    a11y: {
+      screenReader: function () {
+        var p = plugins.ScreenReader
+        if (!p || !p.isEnabled) return Promise.resolve(false)
+        return p.isEnabled().then(function (r) { return !!r.value })
+      },
+      onScreenReaderChange: function (cb) {
+        var p = plugins.ScreenReader
+        if (!p) return
+        p.addListener('stateChange', function (e) { cb(!!e.value) })
+      },
+      speak: function (text) {
+        var p = plugins.ScreenReader
+        if (!p) return Promise.resolve(null)
+        return p.speak({ text: String(text) })
+      }
+    },
+
+    haptics: {
+      impact: function (style) { /* light | medium | heavy */
+        var p = plugins.Haptics
+        if (!p) return Promise.resolve(null)
+        return p.impact({ style: (style || 'medium') })
+      },
+      notification: function (type) { /* success | warning | error */
+        var p = plugins.Haptics
+        if (!p) return Promise.resolve(null)
+        return p.notification({ type: type || 'success' })
+      },
+      vibrate: function (ms) {
+        var p = plugins.Haptics
+        if (!p) return Promise.resolve(null)
+        return p.vibrate({ duration: ms || 50 })
+      }
+    },
+
+    /** game-grade orientation control: lock landscape, read current state */
+    orientation: {
+      current: function () {
+        var p = plugins.ScreenOrientation
+        if (!p) return Promise.resolve(null)
+        return p.current()
+      },
+      lock: function (orientation) { /* 'landscape' | 'portrait' */
+        var p = plugins.ScreenOrientation
+        if (!p) return Promise.resolve(null)
+        return p.lock({ orientation: orientation || 'landscape' })
+      },
+      unlock: function () {
+        var p = plugins.ScreenOrientation
+        if (!p) return Promise.resolve(null)
+        return p.unlock()
+      }
+    },
+
     updates: {
       /** direct-channel updater: fetch the user's endpoint, compare against
           the baked-in build number, let their ui decide what to show.

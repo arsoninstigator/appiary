@@ -55,7 +55,7 @@ npm test
 
 ## intake
 
-three ways in: published web urls (wrap), git repos on github/gitlab/bitbucket/gitea (bundle), or zip uploads (bundle). see docs/architecture.md, step 0. once shipped, the app's device behavior (notifications, permission states, accessibility) is documented in docs/device-runtime.md and its stores and update channels in docs/distribution-channels.md.
+three ways in: published web urls (wrap), git repos on github/gitlab/bitbucket/gitea (bundle), or zip uploads (bundle). see docs/architecture.md, step 0. once shipped, the app's device behavior (notifications, permission states, accessibility) is documented in docs/device-runtime.md and its stores and update channels in docs/distribution-channels.md. whether a game can ship on the shell has its own honest verdict in docs/games.md.
 
 ## roadmap
 

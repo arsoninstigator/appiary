@@ -627,6 +627,28 @@ await test('24 release tracks: catalog, platform locks, rollout validation, lane
   }
 })
 
+
+await test('25 game + a11y surfaces: screen reader detection, haptics, orientation, streaks and games documented', () => {
+  const b = readFileSync(new URL('../template/runtime/appiary-bridge.js', import.meta.url), 'utf8')
+  for (const needle of ['screenReader', 'onScreenReaderChange', 'speak', 'haptics', 'orientation']) {
+    assert.ok(b.includes(needle), `bridge missing ${needle}`)
+  }
+  const pkg = JSON.parse(readFileSync(new URL('../template/package.json', import.meta.url), 'utf8'))
+  for (const dep of ['@capacitor/screen-reader', '@capacitor/haptics', '@capacitor/screen-orientation']) {
+    assert.ok(pkg.devDependencies[dep], `${dep} must ship in the shell`)
+  }
+  const dr = readFileSync(new URL('../docs/device-runtime.md', import.meta.url), 'utf8')
+  assert.ok(dr.includes('no api for this'), 'screen reader detection gap must be stated honestly')
+  assert.ok(dr.includes('device-local'), 'streak guidance must anchor on device-local time')
+  assert.ok(dr.includes('cross-check'), 'streak anti-cheat caveat must be stated')
+  const g = readFileSync(new URL('../docs/games.md', import.meta.url), 'utf8')
+  for (const needle of ['hardware-accelerated', 'appiary.haptics', 'orientation.lock', 'wrong tool for it', '4.2']) {
+    assert.ok(g.includes(needle), `games doc missing ${needle}`)
+  }
+  const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  assert.ok(r.includes('games'), 'readme must mention the games doc')
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1
