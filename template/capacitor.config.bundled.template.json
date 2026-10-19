@@ -1,0 +1,5 @@
+{
+  "appId": "{{APP_ID}}",
+  "appName": "{{APP_NAME}}",
+  "webDir": "www"
+}

@@ -1,4 +1,5 @@
-import { renderCapacitorConfig } from './wrapper.js'
+import { renderCapacitorConfig, renderBundledConfig } from './wrapper.js'
+import { classifyIntake } from './intake.js'
 import { randomUUID } from 'node:crypto'
 
 /**
@@ -34,10 +35,13 @@ export class Pipeline {
     return next
   }
 
-  /** intake: validate the request, wrap the url, create the job record */
-  async createJob({ projectId, webUrl, platform = 'ios', appId, appName, credentials }) {
+  /** intake: classify the source, wrap or stage-bundle, create the job record */
+  async createJob({ projectId, webUrl, repoUrl, zipUrl, ref, source: givenSource, platform = 'ios', appId, appName, credentials }) {
     if (!['ios', 'android'].includes(platform)) throw new Error('platform must be ios or android')
-    const { config, warnings } = renderCapacitorConfig({ webUrl, appId, appName })
+    const source = givenSource ?? classifyIntake({ webUrl, repoUrl, zipUrl, ref })
+    const { config, warnings } = source.mode === 'wrap'
+      ? renderCapacitorConfig({ webUrl: source.url, appId, appName })
+      : renderBundledConfig({ appId, appName })
     const jobId = `job_${randomUUID().replace(/-/g, '').slice(0, 24)}`
     let credIds = []
     if (credentials) {
@@ -51,6 +55,7 @@ export class Pipeline {
       projectId,
       platform,
       state: 'wrapped',
+      source,
       config,
       warnings,
       credIds,
@@ -69,7 +74,7 @@ export class Pipeline {
     const app = await this.appetize.publishApp({
       platform: job.platform,
       artifactUrl,
-      name: job.projectId
+      note: job.projectId
     })
     await this.setState(jobId, { state: 'previewing', preview: { publicKey: app.publicKey, embedUrl: app.embedUrl } })
     return app
@@ -88,6 +93,7 @@ export class Pipeline {
       config: job.config,
       metadata: { projectId: job.projectId, appId: job.config.appId },
       handoff,
+      source: job.source ?? { mode: 'wrap', url: job.config?.server?.url ?? null },
       baseUrl: this.config.baseUrl ?? null,
       jobId,
       runner: runner ?? this.config.runner ?? null

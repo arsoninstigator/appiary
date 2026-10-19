@@ -37,14 +37,18 @@ export class GitHubOrchestrator {
    * app metadata, the handoff token reference, and status reporting target.
    * secrets themselves are not in this payload.
    */
-  async dispatchBuild({ platform, config, metadata, handoff, baseUrl, jobId, runner = null }) {
+  async dispatchBuild({ platform, config, metadata, handoff, baseUrl, jobId, runner = null, source = null }) {
     if (!['ios', 'android'].includes(platform)) throw new Error('platform must be ios or android')
-    if (!config?.server?.url) throw new Error('config must be a rendered capacitor config')
+    // wrap configs carry server.url; bundle configs carry webDir instead
+    if (!config?.appId || !config?.appName || (!config?.server?.url && !config?.webDir)) {
+      throw new Error('config must be a rendered capacitor config')
+    }
     if (!handoff?.token || !handoff?.handoffId) throw new Error('handoff token required')
     const clientPayload = {
       jobId,
       platform,
       ...(runner ? { runner } : {}),
+      ...(source ? { source } : {}),
       config,
       metadata: metadata ?? {},
       baseUrl: baseUrl ?? null,

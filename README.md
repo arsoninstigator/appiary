@@ -53,6 +53,10 @@ APPIARY_MASTER_KEY=... node src/index.js deploy \
 npm test
 ```
 
+## intake
+
+three ways in: published web urls (wrap), git repos on github/gitlab/bitbucket/gitea (bundle), or zip uploads (bundle). see docs/architecture.md, step 0.
+
 ## roadmap
 
 see `docs/horizon.md` for the versioned plan: v1 capacitor wrap (now), v2 react native / expo, v3 flutter late stage on the horizon.

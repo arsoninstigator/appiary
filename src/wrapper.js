@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs'
  */
 
 const TEMPLATE_PATH = new URL('../template/capacitor.config.template.json', import.meta.url)
+const BUNDLED_TEMPLATE_PATH = new URL('../template/capacitor.config.bundled.template.json', import.meta.url)
 
 export function validateWebUrl(url) {
   let parsed
@@ -78,4 +79,23 @@ export function renderCapacitorConfig({
 /** serialize for writing into the native project */
 export function capacitorConfigJson(config) {
   return `${JSON.stringify(config, null, 2)}\n`
+}
+
+/**
+ * bundle mode: the web app is built by the runner and shipped inside the
+ * binary. no server.url, no live-reload caveat, sturdier for app review.
+ */
+export function renderBundledConfig({ appId, appName, version = '0.1.0' } = {}) {
+  if (!appId || !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}$/.test(appId)) {
+    throw new Error('appId must be reverse-domain style, e.g. com.appiary.demo')
+  }
+  if (!appName) throw new Error('appName is required')
+  const raw = readFileSync(BUNDLED_TEMPLATE_PATH, 'utf8')
+  const rendered = raw
+    .replaceAll('{{APP_ID}}', appId)
+    .replaceAll('{{APP_NAME}}', JSON.stringify(appName).slice(1, -1))
+  const config = JSON.parse(rendered)
+  config.version = version
+  if ('server' in config) throw new Error('bundled template must not configure server.url')
+  return { config, warnings: ['bundle mode: web assets are baked into the binary; updates need a new upload'] }
 }

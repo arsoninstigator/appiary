@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { normalizeMasterKey, seal, unseal, safeEqual } from '../src/vault/crypto.js'
 import { Vault } from '../src/vault.js'
+import { classifyIntake, normalizeGitRepo, labelBuilder } from '../src/intake.js'
 import { MemoryStore } from '../src/store.js'
 import { renderCapacitorConfig, validateWebUrl } from '../src/wrapper.js'
 import { AppetizeClient, embedUrlFor } from '../src/appetize.js'
@@ -138,7 +139,7 @@ await test('07 github orchestrator dispatches repository_dispatch', async () => 
   const gh = new GitHubOrchestrator({ apiToken: 'gh_tok', repo: 'appiary/cloud', fetchImpl: impl })
   const result = await gh.dispatchBuild({
     platform: 'ios',
-    config: { server: { url: 'https://demo.lovable.app/' }, appId: 'com.a.b' },
+    config: { server: { url: 'https://demo.lovable.app/' }, appId: 'com.a.b', appName: 'demo' },
     metadata: { projectId: 'p1' },
     handoff: { token: 'hof_x', handoffId: 'handoff_x' },
     baseUrl: 'https://api.appiary.dev',
@@ -270,11 +271,78 @@ await test('11 runner assets: workflow redeems before build and shreds after', (
   assert.ok(wf.includes('GITHUB_ENV'), 'redeemed values must be exported to the job env')
   assert.ok(wf.includes('client_payload.runner'), 'runner label must be overridable per dispatch')
   assert.ok(wf.includes('timeout-minutes: 45'), 'build timeout must be capped for margin safety')
+  assert.ok(wf.includes("source.mode == 'bundle-git'"), 'workflow must clone git sources')
+  assert.ok(wf.includes("source.mode == 'bundle-zip'"), 'workflow must fetch zip sources')
+  assert.ok(wf.includes('no index.html staged'), 'staged www must be validated')
+  assert.ok(wf.indexOf('stage www/') < wf.indexOf('sync capacitor project'), 'www must be staged before cap sync')
   assert.ok(wf.includes('delete-keychain'))
   const fastfile = readFileSync(new URL('../template/fastlane/Fastfile', import.meta.url), 'utf8')
   for (const needle of ['match(', 'gym(', 'deliver(', 'supply(', 'setup_ci', 'readonly: true', 'app_store_connect_api_key']) {
     assert.ok(fastfile.includes(needle), `fastfile missing ${needle}`)
   }
+})
+
+
+await test('12 intake classifies web urls, git repos, and zips', async () => {
+  const wrap = classifyIntake({ webUrl: 'https://preview--my-app.lovable.app' })
+  assert.equal(wrap.mode, 'wrap')
+  assert.equal(wrap.builder, 'lovable')
+
+  const generic = classifyIntake({ webUrl: 'https://example.com/app' })
+  assert.equal(generic.mode, 'wrap')
+  assert.equal(generic.builder, null)
+
+  const gh = classifyIntake({ repoUrl: 'https://github.com/acme/webapp/tree/main/packages/ui' })
+  assert.equal(gh.mode, 'bundle-git')
+  assert.equal(gh.repo, 'https://github.com/acme/webapp')
+  assert.equal(gh.ref, 'main')
+
+  const gl = normalizeGitRepo('https://gitlab.com/acme/webapp/-/tree/release-2?foo=bar')
+  assert.equal(gl.repo, 'https://gitlab.com/acme/webapp')
+  assert.equal(gl.ref, 'release-2')
+
+  const bb = normalizeGitRepo('https://bitbucket.org/acme/webapp.git')
+  assert.equal(bb.repo, 'https://bitbucket.org/acme/webapp')
+  assert.equal(bb.gitHost, 'bitbucket')
+
+  const gitea = normalizeGitRepo('https://gitea.com/acme/webapp/src/branch/dev')
+  assert.equal(gitea.repo, 'https://gitea.com/acme/webapp')
+  assert.equal(gitea.ref, 'dev')
+
+  const zip = classifyIntake({ zipUrl: 'https://cdn.appiary.dev/u/src-42.zip' })
+  assert.equal(zip.mode, 'bundle-zip')
+
+  assert.equal(labelBuilder('https://bolt.new/x'), 'bolt')
+  await assert.rejects(async () => classifyIntake({}), /requires one of/)
+  await assert.rejects(async () => normalizeGitRepo('https://gitlab.com/not-a-repo'), /owner\/repo/)
+})
+
+await test('13 bundle mode: git sources produce bundled configs and carry source in dispatch', async () => {
+  const jobStore = new MemoryStore()
+  const ghFetch = mockFetch([{ status: 204, ok: true, body: null }])
+  const vault = new Vault({ masterKey: normalizeMasterKey('m'), store: new MemoryStore() })
+  const pipeline = new Pipeline({
+    vault,
+    github: new GitHubOrchestrator({ apiToken: 't', repo: 'a/b', fetchImpl: ghFetch.impl }),
+    store: jobStore,
+    config: { baseUrl: 'https://api.appiary.dev' }
+  })
+  const { jobId } = await pipeline.createJob({
+    projectId: 'p2',
+    repoUrl: 'https://github.com/acme/webapp/tree/main',
+    platform: 'ios',
+    appId: 'com.appiary.demo',
+    appName: 'demo',
+    credentials: { appstore: { ASC_KEY_ID: 'K1' } }
+  })
+  const job = await jobStore.get(jobId)
+  assert.equal(job.source.mode, 'bundle-git')
+  assert.ok(!job.config.server, 'bundled config must not set server.url')
+  assert.equal(job.config.webDir, 'www')
+  await pipeline.dispatch(jobId)
+  const body = JSON.parse(ghFetch.calls[0].init.body)
+  assert.equal(body.client_payload.source.mode, 'bundle-git')
+  assert.equal(body.client_payload.source.repo, 'https://github.com/acme/webapp')
 })
 
 console.log(`\n${passed} passed, ${failures.length} failed`)

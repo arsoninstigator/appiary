@@ -33,9 +33,9 @@ wrap is instant and the customers' apps are full applications, not websites.
 - premium tier candidate: "true native" conversion at a higher flat price
   than the webview wrap, answering the 4.2 risk directly.
 
-## v3 (late stage, horizon only): flutter
+## v3 (way off, horizon only): flutter
 
-- explicitly the last rung. web react -> flutter is a language hop to dart
+- explicitly the last rung, and far: nothing here is scheduled or designed yet. web react -> flutter is a language hop to dart
   where almost no source carries over; the intake layer becomes a
   conversion product, not a packaging product.
 - serverpod stays out of appiary's scope: hosting customer dart backends is
@@ -50,3 +50,15 @@ each version adds a wrapper without rewriting the pipeline: preview,
 credential routing, orchestration, and submission are wrapper-agnostic by
 design. pick the next rung only when v1's review-risk signal (4.2 rejections)
 or customer demand justifies it, not on the calendar.
+
+## also parked at the same distance
+
+- **desktop (tauri):** packaging web apps as desktop binaries is the same
+  idea on another axis. interesting later; the intake layer already produces
+  a buildable web source, so a tauri target would reuse steps 0 and the
+  store logic, but desktop signing/notarization is a separate problem.
+- **cli tools:** a programmatic appiary for terminal users. the pipeline is
+  already a node library with a cli surface; a public cli is mostly auth and
+  packaging work, not new architecture.
+
+neither moves until v1 earns it.

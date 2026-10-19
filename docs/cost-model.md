@@ -78,6 +78,14 @@ repository_dispatch workflow (runner label is configurable per dispatch;
 github-hosted `macos-latest` remains the fallback). no vendor lock on the
 orchestration: if build hub pricing changes, we flip the runner label back.
 
+## bundle-mode note
+
+git/zip intake (see `docs/architecture.md`, step 0) adds the web app build to
+the runner job: typically 3-8 extra minutes (npm install + build) on the same
+machine class. at build hub rates that is roughly $0.02-0.12 extra per
+upload; at github-hosted macos rates $0.24-0.64. still well inside a flat
+fee, and it removes the app-review risk that wrap mode carries.
+
 ## flat-fee risk register
 
 1. **preview minutes are the margin killer.** streaming is the only step with
