@@ -828,10 +828,19 @@ await test('31 readme problem/solution + compare doc: honest moat ledger', () =>
     'nothing to export',                             // lock-in framing
     'where despia wins today',                       // the honest ledger exists
     'ota updates',                                   // their real advantage named
-    'cannot retroactively stop holding your keys'    // the structural claim
+    'cannot retroactively stop holding your keys',  // the structural claim
+    'offline support',                               // offline row exists
+    'not documented publicly',                       // their offline claim, honestly framed
+    'we do not scrub exif today',                    // honesty includes the seams
+    'country-limited rollouts'                       // bondee pattern in the ledger
   ]) {
     assert.ok(c.includes(needle), `compare doc missing: ${needle}`)
   }
+  const h = readFileSync(new URL('../docs/horizon.md', import.meta.url), 'utf8')
+  assert.ok(h.includes('mobile home-screen widgets'), 'widgets must be the pinned next work item')
+  assert.ok(h.includes('widgetkit'), 'ios widget surface named')
+  assert.ok(h.includes('appiary.widget.set'), 'bridge data surface named')
+  assert.ok(h.includes('desktop widgets (windows / macos)'), 'desktop widgets parked on the horizon')
 })
 
 console.log(`\n${passed} passed, ${failures.length} failed`)

@@ -26,6 +26,8 @@ rather than pretending to be eternal.
 | store-rule lanes | built in: 3.1.1-compliant purchase routing, release tracks, kids/18+ verdicts, review-safe bundle mode | compliant build, revenuecat + storekit paywalls shipped | mostly your problem | your problem |
 | honest "no"s | documented (drm, background html5 audio, ios screenshot blocking, trading apps) | feature list is the pitch | thin docs | n/a |
 | update model | rebuild per native change (minutes); content edits free in wrap mode | ota updates: push fixes in seconds, no approval wait | varies | whatever you build |
+| offline support | structural: bundle mode compiles assets into the binary - airplane mode on day 1; wrap mode online by definition, docs say so | "offline apps" listed on their site; mechanics not documented publicly | varies | yours |
+| privacy surface | documented: the shell collects nothing; exif guidance is honest (we do not scrub today - server-side strip recommended, v2 helper planned); kids/18+ lanes pinned | "privacy compliance" listed; no public privacy-surface documentation found | thin docs | yours |
 | native breadth today | push, notifications, permissions, game services (compile-verified), haptics, orientation, screen-reader detection | broader shipped list: biometrics, siri shortcuts, widgets, admob, onesignal | limited | unlimited |
 | mcp / api surface | planned | mcp server now, platform api by quote | n/a | n/a |
 
@@ -59,12 +61,15 @@ and margin per pack - a good-faith move we respect.
    native artifact must change.
 4. **the release-track machinery.** test users vs production users
    through the stores' own beta surfaces, staged rollouts, version
-   history including test releases - the stuff a serious app needs
-   on day 30, not day 1, and which the one-time converters do not
-   track at all.
+   history including test releases, country-limited rollouts (the
+   bondee pattern, per-track) - the stuff a serious app needs on
+   day 30, not day 1. despia's country-rollout story is unverified:
+   it is not in their public feature list as of 2026-10-20.
 5. **the honesty culture.** the docs say no in writing - drm,
-   background audio, ios screenshot blocking, latency-critical apps -
-   before the customer pays, not after the first rejection. for a
+   background audio, ios screenshot blocking, latency-critical apps,
+   "we do not scrub exif today" - before the customer pays, not
+   after the first rejection. competitors publish feature lists; we
+   publish the seams too. for a
    buyer who cannot evaluate native claims, that is the moat that
    compounds: every honest no is a reason to believe the yeses.
 

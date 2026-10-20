@@ -20,6 +20,24 @@ not for production, and apple's 4.2 "minimum functionality" review guideline
 is the standing risk for thin webview wrappers. v1 ships anyway because the
 wrap is instant and the customers' apps are full applications, not websites.
 
+## next up (v1.x): mobile home-screen widgets
+
+the next native surface after the parked v1 items (icon/splash,
+dashboard): home-screen widgets on both platforms.
+
+- **ios**: a widgetkit extension target added to the generated xcode
+  project - timeline entries, per-app layout, refreshed by the
+  system. **android**: appwidgets (remoteviews / glance) declared in
+  the manifest with a homescreen provider.
+- the hard part is data, not pixels: a widget must render while the
+  webview is dead, so the bridge gains a surface
+  (`appiary.widget.set` / shared app-group storage) that the web app
+  writes on its own schedule and the native timeline reads.
+- despia ships "home widgets" today, so this is parity-and-pass
+  work: same feature class, plus our declared-at-intake wiring and
+  the same honest docs treatment. sized as its own work item, not
+  squeezed into the template as an afterthought.
+
 ## v2 (next native wrapper): react native / expo
 
 - why second: the customers' source code is react (lovable/replit outputs).
@@ -58,6 +76,12 @@ or customer demand justifies it, not on the calendar.
   a buildable web source, so a tauri target would reuse steps 0 and the
   store logic, but desktop signing/notarization is a separate problem.
 - **cli tools:** a programmatic appiary for terminal users.
+- **desktop widgets (windows / macos):** home-screen widgets'
+  desktop cousins (the windows 11 widget board, macos desktop
+  widgets) - parked at the same distance as the desktop/tauri target
+  itself; the mobile widget work designs the data surface so a
+  desktop reader could reuse it, but no desktop widget code is
+  scheduled.
 - **macos / watchos:** macos needs mac catalyst (different pipeline and
   signing story); watchos is not a capacitor target. both stay parked here. the pipeline is
   already a node library with a cli surface; a public cli is mostly auth and
