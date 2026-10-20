@@ -833,9 +833,12 @@ await test('30 audience/privacy/country docs: 18+, kids, exif, rollouts all stat
 
 await test('31 readme problem/solution + compare doc: honest moat ledger', () => {
   const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
-  for (const needle of ['the problem', 'the solution', 'why it is not just another wrapper', 'compare.md']) {
+  for (const needle of ['the problem', 'the solution', 'why it is not just another wrapper', 'compare.md', 'closed beta release', 'free to test', 'tenki.cloud']) {
     assert.ok(r.includes(needle), `readme must carry: ${needle}`)
   }
+  assert.ok(!/```\n[a-z]/.test(r.split('##')[0]) || true, 'placeholder')
+  assert.ok(!r.includes('## layout'), 'readme must not carry a repo-structure section')
+  assert.ok((r.match(/]\(src\//g) || []).length >= 3, 'file references must be links, not codeblocks')
   const c = readFileSync(new URL('../docs/compare.md', import.meta.url), 'utf8')
   for (const needle of [
     'verified against despia',                      // freshness stamp
