@@ -1,0 +1,49 @@
+name: appiary ios compile test
+# one-off verification job: compiles the gameServices ios half (gamekit
+# swift) on a tenki macos runner, exactly like the android half was
+# compiled on a tenki linux sandbox. manual trigger only - never part of
+# the release pipeline.
+#
+# requires the tenki runners github app to be connected to this repo.
+# if this job stays queued with no runner picking it up, that connection
+# is missing: tenki dashboard -> runners -> connect github -> install the
+# app with access to this repository.
+on:
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: tenki-macos-26-small
+    timeout-minutes: 30
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: set up node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - name: 'runtime: config + pre-sync'
+        working-directory: template
+        run: |
+          cat <<'EOF' > capacitor.config.json
+          {"appId":"com.demo.game","appName":"appiary ios compile test","version":"0.4.0","permissions":["gameServices","push","camera"],"channel":{"name":"appstore"}}
+          EOF
+          node scripts/apply-runtime.js pre ios
+          npm install --no-audit --no-fund
+
+      - name: 'runtime: generate ios platform'
+        working-directory: template
+        run: sh scripts/init-platforms.sh ios
+
+      - name: 'runtime: native patches'
+        working-directory: template
+        run: node scripts/apply-runtime.js post ios
+
+      - name: 'compile: swift plugin + shell, no signing needed'
+        working-directory: template
+        run: |
+          set -euo pipefail
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tail -40

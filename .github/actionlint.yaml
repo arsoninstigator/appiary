@@ -1,0 +1,19 @@
+# custom runner labels this repo may target (actionlint treats third-party
+# runner pools like self-hosted labels). tenki macos/linux runners are
+# drop-in runs-on replacements (tenki.cloud/docs/runners/sizes): used by the
+# ios compile-test workflow and valid per-dispatch overrides for the build
+# workflow via client_payload.runner.
+self-hosted-runner:
+  labels:
+    - tenki-macos-26-mini
+    - tenki-macos-26-small
+    - tenki-macos-26-medium
+    - tenki-macos-26-large
+    - tenki-macos-15-mini
+    - tenki-macos-15-small
+    - tenki-macos-15-medium
+    - tenki-macos-15-large
+    - tenki-standard-small-2c-4g
+    - tenki-standard-medium-4c-8g
+    - tenki-standard-large-8c-16g
+    - tenki-standard-large-plus-16c-32g
