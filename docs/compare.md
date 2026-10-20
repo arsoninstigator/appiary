@@ -30,6 +30,7 @@ rather than pretending to be eternal.
 | privacy surface | documented: the shell collects nothing; exif guidance is honest (we do not scrub today - server-side strip recommended, v2 helper planned); kids/18+ lanes pinned | "privacy compliance" listed; no public privacy-surface documentation found | thin docs | yours |
 | native breadth today | push, notifications, permissions, game services (compile-verified), haptics, orientation, screen-reader detection | broader shipped list: biometrics, siri shortcuts, widgets, admob, onesignal | limited | unlimited |
 | mcp / api surface | planned | mcp server now, platform api by quote | n/a | n/a |
+| screenshot blocking | v2 capability (`screenshotBlock`): android FLAG_SECURE genuinely blocks; ios detect-only - the split is documented | not offered; their "screenshot" feature captures one (`takescreenshot://`), the opposite direction | n/a | yours to build |
 
 ## the honest ledger
 
@@ -73,6 +74,13 @@ and margin per pack - a good-faith move we respect.
    publish the seams too. for a
    buyer who cannot evaluate native claims, that is the moat that
    compounds: every honest no is a reason to believe the yeses.
+
+on screenshot blocking, the fair version: neither of us ships it
+today. the difference is direction and honesty - their screenshot
+capability points outward (capture for sharing), ours is a designed
+v2 capability with the android/ios split written down before it
+exists, so an owner with a banking-style app knows exactly what they
+are waiting for and when it is real.
 
 **where the generic converters sit:** cheaper than both of us,
 thinner than both of us. fine for a hobby webview; wrong for anyone
