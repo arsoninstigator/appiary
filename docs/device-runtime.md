@@ -101,6 +101,27 @@ appiary.a11y.speak('streak saved')               // announcement the visual ui c
 use it to enable adaptive modes: richer hint text, larger tap targets,
 spoken confirmations. outside the shell screenReader() resolves false.
 
+## which engine, exactly
+
+the webview is not a browser choice made per app - the platform
+decides:
+
+- **android**: the system webview, which is chromium (hardware-
+  accelerated, auto-updated through play). most devices run google's
+  build; some oems ship their own, still chromium-lineage.
+- **ios**: wkwebkit = webkit, safari's engine - not chromium. every
+  third-party ios webview is webkit; apple allows no other engine
+  in webviews.
+- **there is no firefox option on either platform.** gecko does not
+  ship as an embeddable system webview on android (geckoview powers
+  the firefox browser itself, but no production webview provider
+  exists), and ios forbids non-webkit engines in webviews entirely.
+  this is a platform constraint, not a priority call.
+- for owners: the app runs in the engine its users' devices provide
+  - the same two engines as the mobile web. firefox-only quirks
+  never surface inside a shell; chromium and webkit quirks are the
+  ones that matter, and any desktop devtools pair covers both.
+
 ## daily rhythms: streaks and per-day actions
 
 for apps with daily streaks (login streaks, practice streaks, daily

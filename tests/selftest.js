@@ -647,6 +647,8 @@ await test('25 game + a11y surfaces: screen reader detection, haptics, orientati
   for (const needle of ['hardware-accelerated', 'appiary.haptics', 'orientation.lock', 'wrong tool for it', '4.2', 'bluestacks', 'not a supported target', 'kaboom', 'catch-up']) {
     assert.ok(g.includes(needle), `games doc missing ${needle}`)
   }
+  assert.ok(dr.includes('no firefox option'), 'engine reality must be stated')
+  assert.ok(dr.includes('webkit'), 'ios engine must be named')
   const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
   assert.ok(r.includes('games'), 'readme must mention the games doc')
 })
