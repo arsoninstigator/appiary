@@ -67,7 +67,7 @@ jobs:
       - name: set up node
         uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '22'
 
       # source intake (bundle modes). wrap mode skips these: the web app
       # lives at server.url and the binary only carries the shell.
