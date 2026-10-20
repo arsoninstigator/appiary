@@ -772,7 +772,7 @@ await test('28 media/realtime/native-surfaces doc: honest verdicts, vm-verified 
     'FLAG_SECURE',
     'no supported way to block a screenshot',
     'native-only surface (what a browser cannot do)',
-    'no web api exists or is coming',
+    'no web api exists',
     'home-screen widgets'
   ]
   for (const n of needles) assert.ok(m.includes(n), `media doc missing: ${n}`)
