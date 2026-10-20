@@ -772,6 +772,23 @@ await test('28 media/realtime/native-surfaces doc: honest verdicts, vm-verified 
   assert.ok(m.includes('foreground service'), 'android background audio pattern must be named')
 })
 
+
+await test('29 monetization doc: ads verdicts, upsell patterns, no revenue cut', () => {
+  const m = readFileSync(new URL('../docs/monetization.md', import.meta.url), 'utf8')
+  for (const needle of [
+    'program policies exclude software applications',  // adsense-style: no
+    '@capacitor-community/admob',                      // alive plugin named
+    'native sdks',                                     // admob class stated
+    'consent flow is not optional',                    // ump gate
+    'appiary.ads',                                     // planned bridge surface
+    'iap add-on lane',                                 // upsell rides purchases
+    'never a cut',                                     // no revenue share
+    'not wired in v1'                                  // honest status
+  ]) {
+    assert.ok(m.includes(needle), `monetization doc missing: ${needle}`)
+  }
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1
