@@ -10,6 +10,8 @@ name: appiary ios compile test
 # app with access to this repository.
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [appiary-ios-compile-test]
 
 jobs:
   compile:
