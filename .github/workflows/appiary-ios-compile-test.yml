@@ -37,7 +37,12 @@ jobs:
 
       - name: 'runtime: generate ios platform'
         working-directory: template
-        run: sh scripts/init-platforms.sh ios
+        run: |
+          set -o pipefail
+          sh scripts/init-platforms.sh ios 2>&1 | tee /tmp/init.log || {
+            echo "::error title=init-platforms::$(tail -c 700 /tmp/init.log | tr '\n' '|')"
+            exit 1
+          }
 
       - name: 'runtime: native patches'
         working-directory: template
@@ -48,4 +53,12 @@ jobs:
         run: |
           set -euo pipefail
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tail -40
+          set +e
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > /tmp/xcb.log 2>&1
+          rc=$?
+          set -e
+          tail -30 /tmp/xcb.log
+          if [ "$rc" -ne 0 ]; then
+            echo "::error title=xcodebuild::$(grep -m1 -B2 -A8 -i error /tmp/xcb.log | tr '\n' '|')"
+            exit 1
+          fi

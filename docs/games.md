@@ -55,6 +55,21 @@ show: menu -> gameplay -> save/restore. we do not promise review
 outcomes for anyone's game; we give it the same honest packaging as any
 other app.
 
+## 2d, idle, cozy: the sweet spot
+
+- **kaboom/kaplay, phaser, pixi, plain canvas 2d**: the best case in
+  this whole doc - lighter than webgl, no thermal anxiety, small
+  asset budgets, and the bridge's haptics and orientation lock
+  already cover the polish. yes, first in line.
+- **idle games, one honest mechanic**: the webview suspends in the
+  background, so idle progression must be resume-time catch-up math
+  (`new Date()` delta since last tick), not a running timer. idle
+  games already work this way naturally - apps that expect
+  background ticking will find the os unsympathetic.
+- cozy/zen games (no score pressure, gentle audio) dodge the two hard
+  limits entirely: no audio-latency demands, no session-length
+  thermal load.
+
 ## the short verdict
 
 casual and mid-core games (match, runner, puzzle, word, idle, board):
