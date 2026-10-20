@@ -95,3 +95,40 @@ export function patchMainActivityGames(javaSrc) {
     `$1\n\nimport android.os.Bundle;\nimport com.google.android.gms.games.PlayGamesSdk;`
   )
 }
+
+/** register the app's own url scheme as an android deep-link intent
+ *  filter on the main activity. the scheme is the appId itself -
+ *  reverse-dns strings are valid uri schemes (ALPHA *( ALPHA / DIGIT /
+ *  "+" / "-" / "." )), and the oauth lane's callbacks ride it.
+ *  idempotent. */
+export function patchUrlSchemeAndroid(manifest, appId) {
+  if (!appId) throw new Error('appId required for the url scheme')
+  if (manifest.includes(`android:scheme="${appId}"`)) return manifest
+  const filter = [
+    '            <intent-filter>',
+    '                <action android:name="android.intent.action.VIEW" />',
+    '                <category android:name="android.intent.category.DEFAULT" />',
+    '                <category android:name="android.intent.category.BROWSABLE" />',
+    `                <data android:scheme="${appId}" />`,
+    '            </intent-filter>'
+  ].join('\n')
+  const anchor = /(<intent-filter>[\s\S]*?android\.intent\.category\.LAUNCHER[\s\S]*?<\/intent-filter>)/
+  if (!anchor.test(manifest)) {
+    throw new Error('launcher intent-filter not found; capacitor manifest shape changed')
+  }
+  return manifest.replace(anchor, `$1\n${filter}`)
+}
+
+/** plistbuddy argv list registering the ios url scheme (appId) under
+ *  CFBundleURLTypes. the caller tolerates "already exists" failures so
+ *  re-runs are idempotent. */
+export function urlSchemePlistCommands(appId, plistPath) {
+  if (!appId) throw new Error('appId required for the url scheme')
+  return [
+    ['-c', 'Add :CFBundleURLTypes array', plistPath],
+    ['-c', 'Add :CFBundleURLTypes:0 dict', plistPath],
+    ['-c', `Add :CFBundleURLTypes:0:CFBundleURLName string ${appId}`, plistPath],
+    ['-c', 'Add :CFBundleURLTypes:0:CFBundleURLSchemes array', plistPath],
+    ['-c', `Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string ${appId}`, plistPath]
+  ]
+}

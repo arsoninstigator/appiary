@@ -131,12 +131,18 @@ and the privacy surface in docs/audience-privacy.md.
 see `docs/horizon.md` for the versioned plan: v1 capacitor wrap (now),
 v2 react native / expo, v3 flutter late stage on the horizon.
 
-## status
+## status: v1.0.0
 
-working core, compile-verified on real machines: both halves of the
-native pipeline (android on a disposable linux vm, ios on a managed
-mac runner) produce real binaries end to end. the dashboard ui and
-the icon/splash service are the next layer.
+the v1 pipeline is closed and compile-verified on real machines:
+wrap/preview/compile/sign/submit on both platforms (android verified
+on a disposable linux vm, ios on a managed mac runner), the device
+bridge (push, notifications, permissions, accessibility), release
+tracks, the first-party game services plugin with both halves
+compiling, deep-link callback schemes wired, and the honest docs set
+(games, media, monetization, audience, compare, cost model).
+deferred by design: the icon/splash generation service, the
+dashboard ui, and mobile home-screen widgets — see docs/horizon.md.
+see CHANGELOG.md for the shipped scope.
 
 ## pricing
 

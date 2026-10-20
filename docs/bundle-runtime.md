@@ -41,11 +41,11 @@ verified against the capacitor config docs: the webview schemes are
 canonical origins instead of per-app strings.
 
 the oauth callback scheme is the appId itself (reverse-dns is a valid scheme,
-unique per app, zero derivation). remaining template task: register it in
-the generated platforms during `init-platforms.sh` —
-`/usr/libexec/plistbuddy` adding CFBundleURLTypes on ios and an intent-filter
-in the android manifest. the dashboard then shows users the exact callback
-string (`<appId>://`) for their provider config.
+unique per app, zero derivation). **wired in v1**: `apply-runtime` post
+registers it in both generated platforms — CFBundleURLTypes via
+`/usr/libexec/plistbuddy` on ios, a browsable VIEW intent-filter in the
+android manifest — idempotently, for every app. the callback string is
+always `<appId>://`.
 
 rule: the login dance happens where an https origin exists (system browser,
 or provider support for the capacitor scheme), and everything after the

@@ -36,7 +36,7 @@ const {
   iosUsageDescriptions, androidPermissions, entitlementsFor, entitlementsPlist,
   pluginDependenciesFor, normalizePermissions
 } = await import(`file://${join(srcRoot, 'permissions.js')}`)
-const { patchAndroidManifest, patchVersionCode, patchEntitlementsReference, patchXcodeVersions, patchMainActivityGames } =
+const { patchAndroidManifest, patchUrlSchemeAndroid, urlSchemePlistCommands, patchVersionCode, patchEntitlementsReference, patchXcodeVersions, patchMainActivityGames } =
   await import(`file://${join(srcRoot, 'runtime-patch.js')}`)
 const { normalizeChannel, CHANNELS } = await import(`file://${join(srcRoot, 'channels.js')}`)
 const { normalizeReleaseTrack } = await import(`file://${join(srcRoot, 'releases.js')}`)
@@ -97,6 +97,16 @@ if (platform === 'ios') {
         sh('/usr/libexec/PlistBuddy', ['-c', `Set :${key} ${value}`, 'ios/App/App/Info.plist'])
       }
     }
+    /* deep-link scheme: the appId itself (v1 gap closed - the oauth lane's
+       callbacks land here). Add fails once the entry exists, which is the
+       idempotence we want. */
+    for (const argv of urlSchemePlistCommands(config.appId, 'ios/App/App/Info.plist')) {
+      try {
+        sh('/usr/libexec/PlistBuddy', argv)
+      } catch {
+        /* entry already present */
+      }
+    }
     sh('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleVersion ${runNumber}`, 'ios/App/App/Info.plist'])
     sh('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleShortVersionString ${config.version}`, 'ios/App/App/Info.plist'])
     const pbxPath = 'ios/App/App.xcodeproj/project.pbxproj'
@@ -117,7 +127,9 @@ if (platform === 'android') {
     const manifestPerms = androidPermissions(permissions)
     const channelPerm = CHANNELS[channel.name].androidPermission
     const all = channelPerm ? [...manifestPerms, channelPerm] : manifestPerms
-    writeFileSync(manifestPath, patchAndroidManifest(readFileSync(manifestPath, 'utf8'), all))
+    let manifest = patchAndroidManifest(readFileSync(manifestPath, 'utf8'), all)
+    manifest = patchUrlSchemeAndroid(manifest, config.appId)
+    writeFileSync(manifestPath, manifest)
   }
   if (permissions.includes('gameServices')) {
     /* MainActivity package path derives from appId (com.foo.bar -> com/foo/bar) */

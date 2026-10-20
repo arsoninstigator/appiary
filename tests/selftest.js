@@ -656,7 +656,7 @@ await test('25 game + a11y surfaces: screen reader detection, haptics, orientati
 
 await test('26 gameServices capability: entitlements, first-party plugin, runtime wiring end to end', async () => {
   const { entitlementsFor, entitlementsPlist, normalizePermissions } = await import(new URL('../src/permissions.js', import.meta.url))
-  const { patchMainActivityGames } = await import(new URL('../src/runtime-patch.js', import.meta.url))
+  const { patchMainActivityGames, patchUrlSchemeAndroid, urlSchemePlistCommands } = await import(new URL('../src/runtime-patch.js', import.meta.url))
 
   const ents = entitlementsFor(['push', 'gameServices'])
   assert.equal(ents['aps-environment'], 'production')
@@ -671,6 +671,16 @@ await test('26 gameServices capability: entitlements, first-party plugin, runtim
   assert.ok(patched.includes('PlayGamesSdk.initialize(this)'))
   assert.ok(patched.indexOf('PlayGamesSdk.initialize') < patched.indexOf('super.onCreate'))
   assert.equal(patchMainActivityGames(patched), patched, 'patch is idempotent')
+
+  /* deep-link scheme: the appId is a valid uri scheme; the oauth lane's
+     callbacks ride it (v1 gap closed) */
+  const manifestFx = readFileSync(new URL('../tests/fixtures/capacitor-8.5.3/android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8')
+  const manifestPatched = patchUrlSchemeAndroid(manifestFx, 'com.demo.game')
+  assert.ok(manifestPatched.includes('android:scheme="com.demo.game"'), 'scheme must land in the manifest')
+  assert.ok(manifestPatched.includes('android.intent.category.BROWSABLE'), 'filter must be browsable')
+  assert.equal(patchUrlSchemeAndroid(manifestPatched, 'com.demo.game'), manifestPatched, 'scheme patch is idempotent')
+  const plistCmds = urlSchemePlistCommands('com.demo.game', 'ios/App/App/Info.plist')
+  assert.ok(plistCmds.some(([, c]) => String(c).includes('CFBundleURLSchemes:0 string com.demo.game')), 'plist commands must register the scheme')
 
   const { execFileSync } = await import('node:child_process')
   const { mkdtempSync, mkdirSync, writeFileSync, cpSync } = await import('node:fs')
