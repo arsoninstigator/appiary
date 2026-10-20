@@ -815,6 +815,25 @@ await test('30 audience/privacy/country docs: 18+, kids, exif, rollouts all stat
   assert.ok(r.includes('audience-privacy'), 'readme must link the audience doc')
 })
 
+
+await test('31 readme problem/solution + compare doc: honest moat ledger', () => {
+  const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  for (const needle of ['the problem', 'the solution', 'why it is not just another wrapper', 'compare.md']) {
+    assert.ok(r.includes(needle), `readme must carry: ${needle}`)
+  }
+  const c = readFileSync(new URL('../docs/compare.md', import.meta.url), 'utf8')
+  for (const needle of [
+    'verified against despia',                      // freshness stamp
+    'single-use handoff',                            // custody moat
+    'nothing to export',                             // lock-in framing
+    'where despia wins today',                       // the honest ledger exists
+    'ota updates',                                   // their real advantage named
+    'cannot retroactively stop holding your keys'    // the structural claim
+  ]) {
+    assert.ok(c.includes(needle), `compare doc missing: ${needle}`)
+  }
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1
