@@ -770,7 +770,10 @@ await test('28 media/realtime/native-surfaces doc: honest verdicts, vm-verified 
     'secure enclave',
     'certificate pinning',
     'FLAG_SECURE',
-    'no supported way to block a screenshot'
+    'no supported way to block a screenshot',
+    'native-only surface (what a browser cannot do)',
+    'no web api exists or is coming',
+    'home-screen widgets'
   ]
   for (const n of needles) assert.ok(m.includes(n), `media doc missing: ${n}`)
   assert.ok(m.includes('ios 14.3'), 'getUserMedia support floor must be stated')

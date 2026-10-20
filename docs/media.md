@@ -155,6 +155,39 @@ whose promise is latency, execution, or regulation out.
   evidence; hardware-backed self-signing and cert pinning as v2
   capabilities for apps that need to make the claim themselves.
 
+## the native-only surface (what a browser cannot do)
+
+the honest answer to "why not just use the web?" - the list of
+capabilities that exist only in a shipped native app. browsers keep
+closing gaps, so this list is dated, not eternal:
+
+- **screenshot blocking (android)**: `FLAG_SECURE` blocks capture,
+  recording, and the recents preview. no web api exists or is
+  coming. (v2 `screenshotBlock` capability; ios detects-only - see
+  the section below.)
+- **store-native purchases**: apple requires iap for digital goods
+  (3.1.1) and google mirrors it - a browser literally cannot sell a
+  digital subscription through the app stores' rails. (shipped via
+  the iap add-on lane.)
+- **unconditional push**: web push exists but arrives with
+  conditions (ios web push requires a home-screen-installed pwa;
+  android browser push is at the browser's mercy). native push via
+  the owner's fcm keys is unconditional, store-routed, and
+  backgrounded. (shipped.)
+- **haptics on both platforms**: the browser vibration api is
+  android-only; ios touch feedback needs the native surface.
+  (shipped via the bridge.)
+- **app-level permission prompts**: camera/mic/location asked once
+  as the app's own prompts with usage descriptions, not the
+  browser's. (shipped via the permission catalog.)
+- **offline as an installed artifact**: a bundle-mode app is a
+  store binary that works on airplane mode; an installable pwa is
+  still a browser grace. (shipped in bundle mode.)
+- **native biometric unlock** (v2), **background audio service**
+  (v2), **home-screen widgets** (next work item): the surface keeps
+  growing, which is the point - every v2 item widens this list and
+  none of it is reachable from a tab.
+
 ## blocking screenshots
 
 the honest split, because the two operating systems simply disagree:
