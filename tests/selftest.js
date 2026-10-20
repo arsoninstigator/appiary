@@ -843,6 +843,7 @@ await test('31 readme problem/solution + compare doc: honest moat ledger', () =>
   assert.ok(h.includes('widgetkit'), 'ios widget surface named')
   assert.ok(h.includes('appiary.widget.set'), 'bridge data surface named')
   assert.ok(h.includes('desktop widgets (windows / macos)'), 'desktop widgets parked on the horizon')
+  assert.ok(h.includes('no engine to embed'), 'flutterflow closed-source verdict must stay pinned')
 })
 
 console.log(`\n${passed} passed, ${failures.length} failed`)

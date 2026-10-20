@@ -53,6 +53,10 @@ dashboard): home-screen widgets on both platforms.
 
 ## v3 (way off, horizon only): flutter
 
+- flutterflow is not a shortcut here: the builder is closed-source
+  (verified 2026-10-20), so there is no engine to embed or self-host.
+  the lane, if ever taken, targets flutter source directly; until
+  then flutterflow apps arrive through v1 as web exports.
 - explicitly the last rung, and far: nothing here is scheduled or designed yet. web react -> flutter is a language hop to dart
   where almost no source carries over; the intake layer becomes a
   conversion product, not a packaging product.
