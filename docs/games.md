@@ -113,13 +113,16 @@ paste the resource ids into the web app. app store connect - enable
 game center and declare the same. the ids are ordinary constants in the
 owner's web code; nothing appiary-specific about them.
 
-honest status: the android half **compiles on a clean linux vm** -
-verified end to end (sdk bootstrap, cap add, sync, patches, gradle
-assembleDebug producing a real apk) on a disposable cloud machine, so
-the java, the gradle wiring, and the MainActivity injection are all
-proven. the ios half (game center swift) is verified against the
-gamekit docs but not compiled - there is no mac - so the first ios
-`gameServices` push remains its compile test.
+honest status: **both halves compile on real machines.** the android
+half was verified end to end on a disposable linux vm (sdk bootstrap,
+cap add, sync, patches, gradle assembleDebug producing a real apk);
+the ios half (game center swift, spm template) was verified end to
+end on a managed mac runner (cap add, sync, patches, xcodebuild
+producing a real build). the java, the gradle wiring, the
+MainActivity injection, the entitlements patches, and the swift are
+all proven. what remains untested is behavior, not compilation:
+signing flows and the sign-in runtime need a real store account on a
+real device.
 
 one more honest limit: google play games on pc (the desktop program)
 requires native pc-compatible builds; webview games are not eligible.
