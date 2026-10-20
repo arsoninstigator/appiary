@@ -118,16 +118,30 @@ fee, and it removes the app-review risk that wrap mode carries.
 - eas build per-build pricing: expo.dev/pricing and docs.expo.dev usage-based
   pricing (read 2026-10-19)
 
-## our pricing (owner-set 2026-10-19)
+## our pricing (owner-set, corrected 2026-10-20)
 
-per push, usage-based. no subscriptions, no per-seat licenses.
+per push, usage-based. no subscriptions, no per-seat licenses. the
+price scales by platform and by form factor - phones only, or
+phones + tablet-class screens:
 
 | item | price |
 |---|---|
-| ios push (build + sign + testflight upload) | **$48.99** |
-| android push (build + sign + play internal upload) | **$28.99** |
-| both platforms, first ship | **$77.98** |
+| ios push, iphone | **$48.69** |
+| ios push, iphone + ipados | **$58.69** |
+| android push, phone | **$28.69** |
+| android push, phone + tablets | **$36.89** |
+| both platforms, phones only (derived: 48.69 + 28.69) | **$77.38** |
+| both platforms, all form factors (derived: 58.69 + 36.89) | **$95.58** |
 | preview sessions | bundled, hard minute caps per project |
+
+what the form-factor tier buys, honestly: a webview renders
+responsively either way, so the tier is targeting and listing, not a
+different runtime - ios `+ipados` means the generated project ships a
+universal device family (ipad screenshots, ipad-class review); android
+`+ tablets` means the play listing is tablet-optimized with large-
+screen screenshots. intake gains a `formFactor` field (`phone` /
+`universal` per platform) at wiring time; until then the tier is
+quoted, not configured.
 
 a push is one pipeline run that produces a new store artifact: the first
 build and every update build are the same event at the same price. wrap-mode
@@ -139,9 +153,11 @@ margins against the modeled variable cost:
 
 | push | price | variable cost | gross margin |
 |---|---|---|---|
-| ios | $48.99 | $0.10-0.30 (build hub) / $1.60-2.40 (github macos fallback) | 95-99% / 94-97% |
-| android | $28.99 | $0.04-0.08 | ~99% |
+| ios (phone) | $48.69 | $0.10-0.30 (build hub) / $1.60-2.40 (github macos fallback) | 95-99% / 94-97% |
+| ios (+ipados) | $58.69 | same | 97-99% / 95-97% |
+| android (phone) | $28.69 | $0.04-0.08 | ~99% |
+| android (+tablets) | $36.89 | same | ~99% |
 
-positioning: entry at $77.98 for both platforms undercuts one-time
+positioning: entry at $77.38 for both platforms (phones) undercuts one-time
 competitors ($249) while per-push updates keep costs proportional to actual
 usage. preview minutes are the only real cost lever left, hence the caps.

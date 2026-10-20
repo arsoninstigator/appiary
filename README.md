@@ -65,9 +65,11 @@ four moving parts:
   machinery, and the docs say no where no is the honest answer. see
    docs/distribution-channels.md.
 - **priced like infrastructure, not like a moonshot.** per push,
-  usage-based, no subscriptions: ios push $48.99, android push
-  $28.99, both platforms $77.98. wrap-mode content edits are free.
-  the margin math is public in docs/cost-model.md.
+  usage-based, no subscriptions: ios push $48.69, android push
+  $28.69, both platforms (phones) $77.38 - with tablet-class tiers
+  ($58.69 ios + ipados, $36.89 android + tablets) for apps that want
+  the big screens. wrap-mode content edits are free. the margin math
+  is public in docs/cost-model.md.
 
 for the honest competitive picture against despia and the generic
 converters, see docs/compare.md.
@@ -138,10 +140,11 @@ the icon/splash service are the next layer.
 
 ## pricing
 
-per push, usage-based, no subscriptions. ios push $48.99, android
-push $28.99, both platforms $77.98. a push is any pipeline run that
-produces a new store artifact — first build and updates cost the
-same, wrap-mode content edits are free (they never rebuild).
-previews are bundled with hard minute caps. see docs/cost-model.md
-for the margin math and docs/compare.md for how this stacks up
-against the alternatives.
+per push, usage-based, no subscriptions. ios push $48.69, android
+push $28.69, both platforms (phones) $77.38; tablet-class tiers add
+ipados/tablet targeting ($58.69 ios, $36.89 android). a push is any
+pipeline run that produces a new store artifact — first build and
+updates cost the same, wrap-mode content edits are free (they never
+rebuild). previews are bundled with hard minute caps. see
+docs/cost-model.md for the margin math and docs/compare.md for how
+this stacks up against the alternatives.
