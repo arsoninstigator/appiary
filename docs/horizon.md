@@ -86,6 +86,21 @@ or customer demand justifies it, not on the calendar.
   itself; the mobile widget work designs the data surface so a
   desktop reader could reuse it, but no desktop widget code is
   scheduled.
+- **amazon fire (asked 2026-10-20):** fire tablets are android -
+  a new store channel (amazon appstore) in the same pattern as
+  samsung, and our apk already runs there; cheap to add when a
+  customer asks. **fire tv / fire stick** are technically possible
+  (android tv builds with leanback + d-pad navigation) but a touch
+  web app on a 10-foot ui is usually the wrong product - parked
+  until a customer actually has a d-pad-friendly ui.
+- **chromebooks:** free. chrome os runs play-store android apps
+  natively, so the play channel already ships there, and the owner's
+  web url already runs in the browser. the +tablets form-factor tier
+  covers the large-screen layout question; nothing new to build.
+- **kindle e-ink readers:** hard no, honestly: kindle e-readers do
+  not run android apps at all (locked firmware, no third-party app
+  platform). "kindle fire" tablets are the android ones - see the
+  fire tablet lane above.
 - **macos / watchos:** macos needs mac catalyst (different pipeline and
   signing story); watchos is not a capacitor target. both stay parked here. the pipeline is
   already a node library with a cli surface; a public cli is mostly auth and

@@ -1,5 +1,19 @@
 # changelog
 
+## unreleased (v1.1)
+
+- icon/splash generation service: a source square image (>=1024px)
+  becomes the full asset tree at intake time - ios appiconset (all
+  sizes + 1024 marketing icon), ios storyboard splash imageset,
+  android launchers per density, adaptive layers (anydpi-v26 xml),
+  android splash images per density. a separate service by design:
+  builds install no image tooling, apply-runtime post only copies the
+  staged `iconset/` tree into the generated platforms.
+- parked on the horizon (asked 2026-10-20): amazon fire tablets
+  (android - a new store channel when asked), fire tv/stick (10-foot
+  ui question, parked), chromebooks (already free via the play
+  channel + the web), kindle e-ink (hard no - no app platform).
+
 ## v1.0.0 — 2026-10-20
 
 first closed release: the browser-to-store pipeline.

@@ -12,5 +12,8 @@
   },
   "scripts": {
     "test": "node tests/selftest.js"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
   }
 }

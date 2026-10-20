@@ -26,7 +26,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, copyFileSync, cpSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -86,9 +86,22 @@ if (phase === 'pre') {
 
 /* ---------- post: native projects exist ---------- */
 
+/* v1.1: the icon/splash service generates assets at intake time into a
+   staged `iconset/` directory; the build only copies. generation never
+   runs on a runner - builds install no image tooling. */
+const applyIconset = (platform) => {
+  if (!existsSync('iconset')) return
+  const sub = platform === 'ios' ? join('iconset', 'ios', 'Assets.xcassets') : join('iconset', 'android', 'res')
+  const target = platform === 'ios' ? 'ios/App/App/Assets.xcassets' : 'android/app/src/main/res'
+  if (!existsSync(sub)) return
+  cpSync(sub, target, { recursive: true })
+  console.log(`== iconset copied (${platform})`)
+}
+
 const iosEntries = iosUsageDescriptions(permissions, config.permissionDescriptions || {})
 
 if (platform === 'ios') {
+  applyIconset('ios')
   if (existsSync('ios/App/App/Info.plist')) {
     for (const [key, value] of Object.entries(iosEntries)) {
       try {
@@ -121,6 +134,7 @@ if (platform === 'ios') {
 }
 
 if (platform === 'android') {
+  applyIconset('android')
   const manifestPath = 'android/app/src/main/AndroidManifest.xml'
   if (existsSync(manifestPath)) {
     const channel = normalizeChannel('android', config.channel || {})
