@@ -64,6 +64,28 @@ ios has no direct channel: apple distribution is the app store, testflight,
 or enterprise programs the owner runs entirely on their own. we say so
 instead of pretending.
 
+## country-limited rollouts (the bondee pattern)
+
+apps that launch only in some countries are a store-console control,
+not a build-time one: the same binary, made available only where the
+owner chooses.
+
+- **play**: country availability is set per track in the play console
+  (a beta can live in three countries while production waits). our
+  per-track story composes: a `closed` track limited to the launch
+  markets, promoted to `production` with the same country list.
+- **app store**: availability is per-storefront in app store connect;
+  apple's version territories are the equivalent knob.
+- **v1**: the owner sets the country list in the console at first
+  submission - the same manual console moment as the privacy policy.
+  **v2**: both consoles expose the knob through their publishing apis
+  (play track releases carry country targeting; asc has version
+  territories), so a `countries` list at intake lands in the same
+  automation lane as icons and metadata.
+- the honest limit: local legal requirements for a given market are
+  the owner's to know; appiary can gate the build but cannot license
+  it.
+
 ## what is deliberately not here
 
 ota web-asset hotpatching stays parked at v2: store builds update by

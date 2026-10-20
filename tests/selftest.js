@@ -789,6 +789,29 @@ await test('29 monetization doc: ads verdicts, upsell patterns, no revenue cut',
   }
 })
 
+
+await test('30 audience/privacy/country docs: 18+, kids, exif, rollouts all stated honestly', () => {
+  const p = readFileSync(new URL('../docs/audience-privacy.md', import.meta.url), 'utf8')
+  for (const needle of [
+    'shell itself collects nothing',            // the structural fact
+    'dead on arrival',                          // explicit content verdict
+    'coppa', 'gdpr-k',                          // kids compliance regimes
+    'families questionnaire',                   // play families policy
+    'nutrition label',                          // apple privacy declarations
+    'appiary does not strip exif',              // the honest no
+    'gps coordinates',                          // why it matters
+    'server-side strip'                         // the recommendation
+  ]) {
+    assert.ok(p.includes(needle), `audience doc missing: ${needle}`)
+  }
+  const dc = readFileSync(new URL('../docs/distribution-channels.md', import.meta.url), 'utf8')
+  for (const needle of ['country-limited rollouts', 'per track', 'storefront', 'countries']) {
+    assert.ok(dc.includes(needle), `distribution doc missing: ${needle}`)
+  }
+  const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
+  assert.ok(r.includes('audience-privacy'), 'readme must link the audience doc')
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1
