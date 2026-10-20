@@ -111,7 +111,8 @@ details in the [architecture doc](docs/architecture.md), step 0.
   game services, deep-link schemes. see the
   [changelog](CHANGELOG.md) and the
   [v1 tag](https://github.com/tinkerquest/appiary/releases/tag/v1.0.0).
-- **v1.1** - icon/splash generation service; dashboard ui.
+- **v1.1** - icon/splash generation service and dashboard ui (in
+  progress - [changelog](CHANGELOG.md)).
 - **v1.x** - mobile home-screen widgets (ios widgetkit + android
   appwidgets, with an `appiary.widget.set` data surface).
 - **v2** - react native / expo as a second wrapper, answering apple's

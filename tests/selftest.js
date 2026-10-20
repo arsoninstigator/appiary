@@ -918,6 +918,54 @@ await test('32 icon/splash service (v1.1): full asset tree + staged-copy integra
   assert.equal(copiedMeta.width, 192, 'staged icon must land in the platform res tree')
 })
 
+
+await test('33 dashboard (v1.1): intake, icons, honest 503s over real http', async () => {
+  const { mkdtempSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { startDashboard } = await import(new URL('../src/dashboard/server.js', import.meta.url))
+  const sharp = (await import('sharp')).default
+
+  const dataRoot = mkdtempSync(join(tmpdir(), 'appiary-dash-'))
+  /* env WITHOUT appetize/github keys: the unconfigured path is the test path */
+  const { server, port } = await startDashboard({ dataRoot, env: {} })
+  const base = `http://127.0.0.1:${port}`
+  try {
+    const html = await (await fetch(base + '/')).text()
+    assert.ok(html.includes('appiary dashboard'), 'dashboard html must serve')
+    assert.ok(html.includes('intake') && html.includes('icon') && html.includes('publish'), 'all sections present')
+    assert.ok(!html.includes('fonts.googleapis'), 'decoupled project: no external font imports')
+
+    const bad = await fetch(base + '/api/wrap', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'url', url: 'not a url at all', appId: 'com.example.demo', appName: 'demo' }) })
+    assert.equal(bad.status, 400, 'invalid url must 400')
+    const ftp = await fetch(base + '/api/wrap', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'url', url: 'ftp://example.com', appId: 'com.example.demo', appName: 'demo' }) })
+    assert.equal(ftp.status, 400, 'non-http scheme must 400')
+
+    const wrap = await (await fetch(base + '/api/wrap', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'url', url: 'https://demo.lovable.app', appId: 'com.example.demo', appName: 'demo' }) })).json()
+    assert.equal(wrap.job.state, 'wrapped', 'wrap must land in wrapped state')
+    assert.ok(wrap.job.id, 'job must get an id')
+
+    const iconPng = await sharp({ create: { width: 1024, height: 1024, channels: 4, background: '#3a7bd5' } }).png().toBuffer()
+    const icon = await (await fetch(`${base}/api/jobs/${wrap.job.id}/icon`, { method: 'post', headers: { 'content-type': 'image/png' }, body: iconPng })).json()
+    assert.ok(icon.iconset.files >= 35, `dashboard icon gen must produce the full tree, got ${icon.iconset?.files}`)
+
+    const smallPng = await sharp({ create: { width: 512, height: 512, channels: 4, background: '#fff' } }).png().toBuffer()
+    const small = await fetch(`${base}/api/jobs/${wrap.job.id}/icon`, { method: 'post', headers: { 'content-type': 'image/png' }, body: smallPng })
+    assert.equal(small.status, 400, 'undersized icon must 400')
+
+    const preview = await (await fetch(`${base}/api/jobs/${wrap.job.id}/preview`, { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ artifactUrl: 'https://example.com/app.apk' }) })).json()
+    assert.ok(preview.error.includes('appetize key not configured'), 'unconfigured preview must 503 honestly')
+
+    const publish = await (await fetch(`${base}/api/jobs/${wrap.job.id}/publish`, { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: 'android', releaseTrack: 'internal' }) })).json()
+    assert.ok(publish.error.includes('github dispatch not configured'), 'unconfigured publish must 503 honestly')
+
+    const list = await (await fetch(base + '/api/jobs')).json()
+    assert.equal(list.jobs.length, 1, 'job list must show the wrapped job')
+    assert.ok(Array.isArray(list.states) && list.states.includes('submitted'), 'states vocabulary must come from the pipeline')
+  } finally {
+    server.close()
+  }
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1

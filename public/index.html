@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>appiary dashboard</title>
+<style>
+  :root { --ink: #1c2733; --soft: #61707f; --line: #d9e0e8; --bg: #f7f9fb; --card: #ffffff; --accent: #2f6fed; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { padding: 20px 28px; border-bottom: 1px solid var(--line); background: var(--card); }
+  header h1 { margin: 0; font-size: 19px; font-weight: 650; }
+  header p { margin: 4px 0 0; font-size: 13px; color: var(--soft); }
+  main { max-width: 780px; margin: 0 auto; padding: 24px 20px 80px; display: grid; gap: 18px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  section h2 { margin: 0 0 12px; font-size: 13px; text-transform: lowercase; letter-spacing: 0.08em; color: var(--soft); font-weight: 600; }
+  label { display: block; font-size: 12.5px; color: var(--soft); margin: 10px 0 4px; }
+  input[type=text], input[type=file], select { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink); }
+  .row { display: flex; gap: 10px; } .row > * { flex: 1; }
+  button { margin-top: 12px; padding: 9px 16px; font-size: 14px; border: none; border-radius: 7px; background: var(--accent); color: #fff; cursor: pointer; }
+  button.secondary { background: #eef2f7; color: var(--ink); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .msg { margin-top: 10px; font-size: 13px; padding: 9px 12px; border-radius: 7px; display: none; }
+  .msg.ok { display: block; background: #eaf6ec; color: #20571f; }
+  .msg.err { display: block; background: #fbeaea; color: #8a2222; white-space: pre-wrap; }
+  .drop { margin-top: 10px; border: 1.5px dashed var(--line); border-radius: 9px; padding: 22px; text-align: center; font-size: 13.5px; color: var(--soft); cursor: pointer; }
+  .drop.has { border-color: var(--accent); color: var(--ink); }
+  .jobs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .jobs li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px; }
+  .jobs .app { flex: 1; font-weight: 600; }
+  .jobs .st { font-size: 12px; padding: 3px 9px; border-radius: 20px; background: #eef2f7; color: var(--soft); }
+  .jobs .st.wrapped { background: #eaf0fe; color: #2f5c9e; }
+  .jobs .st.dispatched, .jobs .st.building { background: #fff3dc; color: #8a6415; }
+  .jobs .st.previewing, .jobs .st.submitted, .jobs .st.done { background: #eaf6ec; color: #20571f; }
+  .jobs .meta { font-size: 12px; color: var(--soft); }
+  iframe { width: 100%; height: 560px; border: 1px solid var(--line); border-radius: 10px; background: #000; }
+</style>
+</head>
+<body>
+<header>
+  <h1>appiary dashboard</h1>
+  <p>web app in, store-ready binary out. intake, icons, preview, publish.</p>
+</header>
+<main>
+  <section>
+    <h2>intake</h2>
+    <div class="row">
+      <div><label>mode</label>
+        <select id="mode"><option value="url">web url (wrap)</option><option value="zip">zip upload (bundle)</option></select></div>
+      <div id="src-url"><label>app url</label><input type="text" id="url" placeholder="https://demo.lovable.app"></div>
+      <div id="src-zip" style="display:none"><label>app zip</label><input type="file" id="zip" accept=".zip"></div>
+    </div>
+    <div class="row">
+      <div><label>app id</label><input type="text" id="appId" placeholder="com.example.demo"></div>
+      <div><label>app name</label><input type="text" id="appName" placeholder="demo app"></div>
+      <div><label>version</label><input type="text" id="version" value="0.1.0"></div>
+    </div>
+    <button id="wrap-btn">wrap</button>
+    <div class="msg" id="wrap-msg"></div>
+  </section>
+
+  <section>
+    <h2>icon</h2>
+    <div class="drop" id="drop">drop or click - square png, at least 1024x1024</div>
+    <input type="file" id="icon-file" accept="image/png" hidden>
+    <button id="icon-btn" disabled>generate icon set</button>
+    <div class="msg" id="icon-msg"></div>
+  </section>
+
+  <section>
+    <h2>preview</h2>
+    <label>build artifact url (from a completed run)</label><input type="text" id="artifactUrl" placeholder="https://.../app-debug.apk">
+    <button class="secondary" id="preview-btn">open simulator preview</button>
+    <div class="msg" id="preview-msg"></div>
+    <div id="preview-frame" style="display:none; margin-top:10px"><iframe id="frame" title="simulator preview"></iframe></div>
+  </section>
+
+  <section>
+    <h2>publish</h2>
+    <div class="row">
+      <div><label>platform</label><select id="platform"><option value="android">android</option><option value="ios">ios</option></select></div>
+      <div><label>release track</label><select id="track"><option value="internal">play internal</option><option value="closed">play closed</option><option value="open">play open</option><option value="production">production</option><option value="testflight">testflight</option><option value="appstore">app store</option></select></div>
+    </div>
+    <button id="publish-btn">dispatch cloud compile</button>
+    <div class="msg" id="publish-msg"></div>
+  </section>
+
+  <section>
+    <h2>jobs</h2>
+    <ul class="jobs" id="jobs"></ul>
+  </section>
+</main>
+<script>
+let currentJob = null
+
+const $ = (id) => document.getElementById(id)
+const show = (id, text, ok) => { const el = $(id); el.textContent = text; el.className = 'msg ' + (ok ? 'ok' : 'err') }
+
+$('mode').addEventListener('change', () => {
+  $('src-url').style.display = $('mode').value === 'url' ? '' : 'none'
+  $('src-zip').style.display = $('mode').value === 'zip' ? '' : 'none'
+})
+
+$('wrap-btn').addEventListener('click', async () => {
+  const body = { mode: $('mode').value, appId: $('appId').value, appName: $('appName').value, version: $('version').value || '0.1.0' }
+  if (body.mode === 'url') body.url = $('url').value
+  if (body.mode === 'zip') {
+    const f = $('zip').files[0]
+    if (!f) return show('wrap-msg', 'choose a zip first', false)
+    body.zipBase64 = await fileToBase64(f)
+  }
+  const r = await fetch('/api/wrap', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  const d = await r.json()
+  if (!r.ok) return show('wrap-msg', d.error, false)
+  currentJob = d.job
+  $('icon-btn').disabled = false
+  show('wrap-msg', 'wrapped: ' + d.job.appId + ' (' + d.job.mode + ')', true)
+  refreshJobs()
+})
+
+$('drop').addEventListener('click', () => $('icon-file').click())
+$('drop').addEventListener('dragover', (e) => { e.preventDefault(); $('drop').classList.add('has') })
+$('drop').addEventListener('dragleave', () => $('drop').classList.remove('has'))
+$('drop').addEventListener('drop', (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) pickIcon(e.dataTransfer.files[0]) })
+$('icon-file').addEventListener('change', () => { if ($('icon-file').files[0]) pickIcon($('icon-file').files[0]) })
+
+function pickIcon(f) { $('drop').textContent = f.name + ' (' + Math.round(f.size / 1024) + 'kb)'; $('drop').classList.add('has'); $('icon-btn').dataset.file = f.name; window._iconFile = f }
+
+$('icon-btn').addEventListener('click', async () => {
+  if (!currentJob) return show('icon-msg', 'wrap an app first', false)
+  const f = window._iconFile
+  if (!f) return show('icon-msg', 'choose a png first', false)
+  const r = await fetch('/api/jobs/' + currentJob.id + '/icon', { method: 'post', headers: { 'content-type': 'image/png' }, body: await f.arrayBuffer() })
+  const d = await r.json()
+  if (!r.ok) return show('icon-msg', d.error, false)
+  show('icon-msg', 'icon set generated: ' + d.iconset.files + ' files (all densities, adaptive layers, splash)', true)
+})
+
+$('preview-btn').addEventListener('click', async () => {
+  if (!currentJob) return show('preview-msg', 'wrap an app first', false)
+  const r = await fetch('/api/jobs/' + currentJob.id + '/preview', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ artifactUrl: $('artifactUrl').value, platform: 'android' }) })
+  const d = await r.json()
+  if (!r.ok) return show('preview-msg', d.error, false)
+  $('frame').src = d.job.previewUrl
+  $('preview-frame').style.display = ''
+  show('preview-msg', 'streaming', true)
+  refreshJobs()
+})
+
+$('publish-btn').addEventListener('click', async () => {
+  if (!currentJob) return show('publish-msg', 'wrap an app first', false)
+  const r = await fetch('/api/jobs/' + currentJob.id + '/publish', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: $('platform').value, releaseTrack: $('track').value }) })
+  const d = await r.json()
+  if (!r.ok) return show('publish-msg', d.error, false)
+  show('publish-msg', 'dispatched - the cloud runner is compiling', true)
+  refreshJobs()
+})
+
+async function refreshJobs() {
+  const r = await fetch('/api/jobs')
+  const d = await r.json()
+  $('jobs').innerHTML = (d.jobs || []).map((j) =>
+    '<li><span class="app">' + j.appName + '</span><span class="meta">' + j.appId + '</span><span class="st ' + j.state + '">' + j.state + '</span></li>'
+  ).join('') || '<li><span class="meta">no jobs yet</span></li>'
+}
+
+function fileToBase64(f) {
+  return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result.split(',')[1]); r.onerror = no; r.readAsDataURL(f) })
+}
+
+refreshJobs()
+setInterval(refreshJobs, 2500)
+</script>
+</body>
+</html>

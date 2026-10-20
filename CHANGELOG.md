@@ -9,6 +9,13 @@
   android splash images per density. a separate service by design:
   builds install no image tooling, apply-runtime post only copies the
   staged `iconset/` tree into the generated platforms.
+- dashboard: a dependency-free http surface over the real modules
+  (src/dashboard/server.js + public/index.html, single file, no
+  build step). intake (url wrap + zip bundle), icon generation per
+  job, simulator preview (appetize publish from an artifact url),
+  publish dispatch with platform + release track pickers, live job
+  list. honest degradation: steps needing external keys answer 503
+  with the exact missing env, never pretend.
 - parked on the horizon (asked 2026-10-20): amazon fire tablets
   (android - a new store channel when asked), fire tv/stick (10-foot
   ui question, parked), chromebooks (already free via the play
