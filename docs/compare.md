@@ -20,7 +20,7 @@ rather than pretending to be eternal.
 
 | | appiary | despia | generic converters | diy |
 |---|---|---|---|---|
-| pricing model | per push, usage-based ($77.38 both platforms to start) | one-time packs ($249 solo / $498 hybrid) | one-time license, tiered | salaried time + infra |
+| pricing model | per push, usage-based ($68.69 both platforms to start) | one-time packs ($249 solo / $498 hybrid) | one-time license, tiered | salaried time + infra |
 | credential custody | yours: envelope-encrypted vault, single-use handoff, shredded post-build | their platform manages the build | varies; often license-key based | yours, manually |
 | escape hatch | standard capacitor + fastlane + github actions; the whole template is in the repo, self-hostable from day one | source code export on the pack | a codebase you can edit | nothing to escape |
 | store-rule lanes | built in: 3.1.1-compliant purchase routing, release tracks, kids/18+ verdicts, review-safe bundle mode | compliant build, revenuecat + storekit paywalls shipped | mostly your problem | your problem |
@@ -56,10 +56,10 @@ and margin per pack - a good-faith move we respect.
    because nothing is withheld.
 3. **per-push economics.** $249 buys one app's conversion once; a
    browser-only builder with three experiments pays before knowing
-   any of them will stick. our $77.38 entry prices the first
-   experiment like an experiment, and updates cost only when a
-   native artifact must change - with form-factor tiers (ipados,
-   tablets) priced as add-ons, not baked into the base.
+   any of them will stick. our $68.69 both-platform bundle prices
+   the first experiment like an experiment, and updates cost only
+   when a native artifact must change - with form-factor tiers
+   (ipados, tablets) priced as add-ons, not baked into the base.
 4. **the release-track machinery.** test users vs production users
    through the stores' own beta surfaces, staged rollouts, version
    history including test releases, country-limited rollouts (the

@@ -503,7 +503,7 @@ await test('20 pricing: per-push tiers stated in readme and cost model', () => {
   const c = readFileSync(new URL('../docs/cost-model.md', import.meta.url), 'utf8')
   const r = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
   for (const doc of [c, r]) {
-    for (const needle of ['48.69', '28.69', '58.69', '36.89', '77.38']) {
+    for (const needle of ['48.69', '28.69', '58.69', '36.89', '68.69']) {
       assert.ok(doc.includes(needle), `pricing doc missing ${needle}`)
     }
   }

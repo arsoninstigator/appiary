@@ -130,8 +130,8 @@ phones + tablet-class screens:
 | ios push, iphone + ipados | **$58.69** |
 | android push, phone | **$28.69** |
 | android push, phone + tablets | **$36.89** |
-| both platforms, phones only (derived: 48.69 + 28.69) | **$77.38** |
-| both platforms, all form factors (derived: 58.69 + 36.89) | **$95.58** |
+| both platforms, same app (bundle) | **$68.69** |
+| both platforms + all form factors (derived: 68.69 + 10.00 ios premium + 8.20 android premium) | **$86.89** |
 | preview sessions | bundled, hard minute caps per project |
 
 what the form-factor tier buys, honestly: a webview renders
@@ -158,6 +158,6 @@ margins against the modeled variable cost:
 | android (phone) | $28.69 | $0.04-0.08 | ~99% |
 | android (+tablets) | $36.89 | same | ~99% |
 
-positioning: entry at $77.38 for both platforms (phones) undercuts one-time
+positioning: entry at $68.69 for both platforms (bundle) undercuts one-time
 competitors ($249) while per-push updates keep costs proportional to actual
 usage. preview minutes are the only real cost lever left, hence the caps.
