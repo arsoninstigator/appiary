@@ -837,7 +837,7 @@ await test('31 readme problem/solution + compare doc: honest moat ledger', () =>
     'offline support',                               // offline row exists
     'not documented publicly',                       // their offline claim, honestly framed
     'we do not scrub exif today',                    // honesty includes the seams
-    'country-limited rollouts'                       // bondee pattern in the ledger,
+    'country-limited rollouts',                       // bondee pattern in the ledger
     'takescreenshot'                                // their capture feature named, opposite direction
   ]) {
     assert.ok(c.includes(needle), `compare doc missing: ${needle}`)
