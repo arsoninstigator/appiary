@@ -617,6 +617,8 @@ await test('24 release tracks: catalog, platform locks, rollout validation, lane
   assert.ok(ff.includes('"open" => "beta"'), 'android lane must map open to the beta track')
   assert.ok(ff.includes('track == "appstore"'), 'appstore track must gate submit_for_review')
   assert.ok(ff.includes('ROLLOUT'), 'staged rollout must reach supply')
+  assert.ok(!ff.includes('App.xcworkspace'), 'capacitor 8 default is the spm template: no pods workspace exists')
+  assert.ok(ff.includes('App.xcodeproj'), 'gym must target the spm project file')
 
   const wf = readFileSync(new URL('../.github/workflows/appiary-build.yml', import.meta.url), 'utf8')
   assert.ok(wf.includes('RELEASE_TRACK'), 'dispatch config must carry the track to the runner')

@@ -37,7 +37,7 @@ platform :ios do
     )
 
     gym(
-      workspace: "ios/App/App.xcworkspace",
+      project: "ios/App/App.xcodeproj",
       scheme: "App",
       export_method: "app-store",
       skip_package_ipa: false,
@@ -62,7 +62,7 @@ platform :ios do
   desc "fast debug build used to mint the appetize preview artifact"
   lane :preview do
     gym(
-      workspace: "ios/App/App.xcworkspace",
+      project: "ios/App/App.xcodeproj",
       scheme: "App",
       configuration: "Debug",
       export_method: "development",

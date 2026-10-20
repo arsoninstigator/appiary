@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
           cd ios/App
           set +e
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > /tmp/xcb.log 2>&1
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > /tmp/xcb.log 2>&1
           rc=$?
           set -e
           tail -30 /tmp/xcb.log
