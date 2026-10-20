@@ -716,7 +716,7 @@ await test('26 gameServices capability: entitlements, first-party plugin, runtim
   const g = readFileSync(new URL('../docs/games.md', import.meta.url), 'utf8')
   assert.ok(g.includes('gameServices'), 'games doc must document the capability')
   assert.ok(g.includes('retired v1'), 'the dead ecosystem plugin must be called out')
-  assert.ok(g.includes('compiles on a clean linux vm'), 'android compile status must be stated')
+  assert.ok(g.includes('disposable linux vm'), 'android compile status must be stated')
   assert.ok(g.includes('both halves compile on real machines'), 'ios compile status must be stated')
   assert.ok(g.includes('behavior, not compilation'), 'the remaining honest gap must be named')
 })
