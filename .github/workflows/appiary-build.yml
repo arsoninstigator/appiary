@@ -133,6 +133,19 @@ jobs:
           ROLLOUT: ${{ github.event.client_payload.config.rollout || '' }}
         run: bundle exec fastlane ${{ github.event.client_payload.platform }} release
 
+      - name: 'artifact: report the built binary to the dashboard'
+        if: ${{ github.event.client_payload.metadata.artifactBase != '' }}
+        run: |
+          base='${{ github.event.client_payload.metadata.artifactBase }}'
+          token='${{ github.event.client_payload.metadata.artifactToken }}'
+          job='${{ github.event.client_payload.jobId }}'
+          apk='template/android/app/build/outputs/apk/debug/app-debug.apk'
+          if [ -f "$apk" ]; then
+            curl -sf -X POST -H "x-appiary-job-token: $token" --data-binary "@$apk" "$base/api/jobs/$job/artifact" || echo "::warning::artifact upload failed (dashboard unreachable)"
+          else
+            echo "::warning::no debug artifact found at $apk - skipping upload"
+          fi
+
       - name: shred secrets and artifacts
         if: always()
         run: |

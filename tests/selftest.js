@@ -961,6 +961,61 @@ await test('33 dashboard (v1.1): intake, icons, honest 503s over real http', asy
     const list = await (await fetch(base + '/api/jobs')).json()
     assert.equal(list.jobs.length, 1, 'job list must show the wrapped job')
     assert.ok(Array.isArray(list.states) && list.states.includes('submitted'), 'states vocabulary must come from the pipeline')
+
+    /* git intake: valid repo wraps, bad host 400s */
+    const gitBad = await fetch(base + '/api/wrap', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'git', repoUrl: 'https://svn.example.com/x', appId: 'com.example.git', appName: 'g' }) })
+    assert.equal(gitBad.status, 400, 'non-git host must 400')
+
+    /* full lane with injected fetch: dispatch -> artifact upload -> preview */
+    const calls = []
+    const fakeFetch = async (url, opts = {}) => {
+      calls.push({ url: String(url), body: opts.body })
+      if (String(url).includes('api.github.com')) return { ok: true, status: 204 }
+      if (String(url).includes('appetize')) return { ok: true, json: async () => ({ publicKey: 'pk-test' }) }
+      throw new Error('unexpected fetch: ' + url)
+    }
+    const live = await startDashboard({
+      dataRoot: mkdtempSync(join(tmpdir(), 'appiary-live-')),
+      env: { APPETIZE_API_KEY: 'k', APPIARY_GITHUB_TOKEN: 't', APPIARY_GITHUB_REPO: 'owner/app', APPIARY_MASTER_KEY: 'test-master-key' },
+      fetchImpl: fakeFetch
+    })
+    const lbase = `http://127.0.0.1:${live.port}`
+    try {
+      const git = await (await fetch(lbase + '/api/wrap', { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'git', repoUrl: 'https://github.com/someuser/someapp', ref: 'main', appId: 'com.example.git', appName: 'git app' }) })).json()
+      assert.equal(git.job.mode, 'git', 'git intake must wrap as bundle-git')
+
+      /* artifact upload without token must 401 */
+      const noToken = await fetch(`${lbase}/api/jobs/${git.job.id}/artifact`, { method: 'post', body: Buffer.from('PK-fake-apk-bytes') })
+      assert.equal(noToken.status, 401, 'artifact upload without the job token must 401')
+
+      /* publish without credentials must 409 honestly */
+      const noCreds = await fetch(`${lbase}/api/jobs/${git.job.id}/publish`, { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: 'android' }) })
+      assert.equal(noCreds.status, 409, 'publish without vaulted credentials must 409')
+
+      const cred = await (await fetch(`${lbase}/api/jobs/${git.job.id}/credentials`, { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'playJson', key: 'redacted' }) })).json()
+      assert.ok(cred.credentialId, 'credential intake must vault and return an id')
+
+      const pub = await (await fetch(`${lbase}/api/jobs/${git.job.id}/publish`, { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: 'android', releaseTrack: 'internal' }) })).json()
+      assert.equal(pub.job.state, 'dispatched', 'publish must dispatch')
+      const dispatchPayload = JSON.parse(calls.find((c) => String(c.url).includes('api.github.com')).body)
+      assert.ok(dispatchPayload.client_payload.handoff.handoffId, 'dispatch must carry the vault handoff')
+      assert.ok(dispatchPayload.client_payload.metadata.artifactToken, 'dispatch must hand the runner the artifact token')
+      assert.ok(String(dispatchPayload.client_payload.metadata.artifactBase).includes('127.0.0.1'), 'dispatch must hand the runner the artifact base url')
+
+      const token = live.jobTokens.get(git.job.id)
+      const up = await fetch(`${lbase}/api/jobs/${git.job.id}/artifact`, { method: 'post', headers: { 'x-appiary-job-token': token }, body: Buffer.from('PK-fake-apk-bytes-here') })
+      assert.equal(up.status, 200, 'artifact upload with the job token must land')
+      const down = await fetch(`${lbase}/api/jobs/${git.job.id}/artifact`)
+      assert.equal((await down.text()), 'PK-fake-apk-bytes-here', 'artifact must be served back')
+
+      const prev = await (await fetch(`${lbase}/api/jobs/${git.job.id}/preview`, { method: 'post', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ platform: 'android' }) })).json()
+      assert.equal(prev.job.state, 'previewing', 'preview after a real artifact must work')
+      const appCall = calls.find((c) => String(c.url).includes('appetize'))
+      assert.ok(String(JSON.parse(appCall.body).url).includes(`/api/jobs/${git.job.id}/artifact`), 'appetize must be handed the dashboard artifact route')
+      assert.ok(prev.job.previewUrl.includes('pk-test'), 'preview url must embed the appetize key')
+    } finally {
+      live.server.close()
+    }
   } finally {
     server.close()
   }

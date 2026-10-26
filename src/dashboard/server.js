@@ -17,12 +17,15 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { validateWebUrl, renderCapacitorConfig } from '../wrapper.js'
+import { validateWebUrl, renderCapacitorConfig, renderBundledConfig } from '../wrapper.js'
+import { classifyIntake } from '../intake.js'
 import { STATES } from '../pipeline.js'
 import { MemoryStore } from '../store.js'
 import { generateIconSet } from '../icon-service.js'
 import { AppetizeClient, embedUrlFor } from '../appetize.js'
 import { GitHubOrchestrator } from '../github.js'
+import { Vault } from '../vault.js'
+import { normalizeMasterKey } from '../vault/crypto.js'
 
 const fromBase64 = (b64) => Buffer.from(String(b64), 'base64')
 
@@ -30,11 +33,19 @@ export function startDashboard({
   store = new MemoryStore(),
   dataRoot = join(tmpdir(), 'appiary-dashboard'),
   env = process.env,
-  log = console
+  log = console,
+  fetchImpl = undefined
 } = {}) {
   mkdirSync(dataRoot, { recursive: true })
 
   const jobs = new Map()
+  /* per-job artifact upload tokens - kept OUT of job objects so list/detail
+     responses never leak them; publish hands the token to the runner inside
+     the dispatch payload, and the runner presents it on artifact upload. */
+  const jobTokens = new Map()
+  const vault = env.APPIARY_MASTER_KEY
+    ? new Vault({ masterKey: normalizeMasterKey(env.APPIARY_MASTER_KEY), store })
+    : null
 
   const jobDir = (id) => {
     const d = join(dataRoot, id)
@@ -83,8 +94,15 @@ export function startDashboard({
           return json(res, 400, { error: 'zipBase64 must be a real zip (bundle mode)' })
         }
         source = { kind: 'zip', bytes: zip.length }
+      } else if (mode === 'git') {
+        try {
+          const git = classifyIntake({ repoUrl: body.repoUrl, ref: body.ref })
+          source = { kind: 'git', repo: git.repo, ref: git.ref, gitHost: git.gitHost }
+        } catch (e) {
+          return json(res, 400, { error: e.message })
+        }
       } else {
-        return json(res, 400, { error: 'mode must be url or zip' })
+        return json(res, 400, { error: 'mode must be url, zip, or git' })
       }
 
       const id = randomUUID()
@@ -92,6 +110,7 @@ export function startDashboard({
       const config = { appId, appName, version, permissions, intake: source.kind }
       if (source.kind === 'url') config.url = source.url
       if (source.kind === 'zip') writeFileSync(join(dir, 'source.zip'), fromBase64(body.zipBase64))
+      if (source.kind === 'git') config.repoUrl = body.repoUrl
       writeFileSync(join(dir, 'capacitor.config.json'), JSON.stringify(config, null, 2))
 
       const job = {
@@ -99,6 +118,7 @@ export function startDashboard({
         createdAt: new Date().toISOString()
       }
       jobs.set(id, job)
+      jobTokens.set(id, randomUUID())
       log.log(`== dashboard: wrapped ${appId} (${source.kind}) ${id}`)
       return json(res, 200, { job })
     }
@@ -137,12 +157,22 @@ export function startDashboard({
         return json(res, 503, { error: 'appetize key not configured (APPETIZE_API_KEY) - preview unavailable' })
       }
       const body = JSON.parse((await readBody(req)).toString('utf8') || '{}')
-      if (!body.artifactUrl || !/^https:\/\//.test(body.artifactUrl)) {
-        return json(res, 400, { error: 'artifactUrl required - the appetize api fetches the build from a url (the runner uploads artifacts after a build)' })
+      /* preview-after-real-builds: the runner posts the built artifact to
+         /artifact on completion; appetize fetches from a url, so the
+         dashboard hands it this server's own public route. requires the
+         dashboard to be publicly reachable (APPIARY_DASHBOARD_URL or the
+         request host); a laptop localhost cannot be fetched by appetize. */
+      let artifactUrl = body.artifactUrl
+      if (!artifactUrl && job.artifact) {
+        const base = env.APPIARY_DASHBOARD_URL || `http://${req.headers.host}`
+        artifactUrl = `${base}/api/jobs/${job.id}/artifact`
+      }
+      if (!artifactUrl || !/^https?:\/\//.test(artifactUrl)) {
+        return json(res, 400, { error: 'artifactUrl required - publish first so the runner uploads the build artifact, or pass one explicitly' })
       }
       const platform = body.platform || 'android'
-      const client = new AppetizeClient({ apiToken: env.APPETIZE_API_KEY })
-      const pub = await client.publishApp({ platform, artifactUrl: body.artifactUrl })
+      const client = new AppetizeClient({ apiToken: env.APPETIZE_API_KEY, fetchImpl })
+      const pub = await client.publishApp({ platform, artifactUrl })
       job.state = 'previewing'
       job.previewUrl = pub.embedUrl || embedUrlFor(pub.publicKey)
       return json(res, 200, { job })
@@ -159,20 +189,83 @@ export function startDashboard({
       if (!env.APPIARY_GITHUB_TOKEN || !env.APPIARY_GITHUB_REPO) {
         return json(res, 503, { error: 'github dispatch not configured (APPIARY_GITHUB_TOKEN / APPIARY_GITHUB_REPO) - publish unavailable' })
       }
-      const gh = new GitHubOrchestrator({ apiToken: env.APPIARY_GITHUB_TOKEN, repo: env.APPIARY_GITHUB_REPO })
-      const config = JSON.parse(readFileSync(join(jobDir(job.id), 'capacitor.config.json'), 'utf8'))
+      if (!vault) {
+        return json(res, 503, { error: 'vault not configured (APPIARY_MASTER_KEY) - publish unavailable' })
+      }
+      if (!job.credIds || job.credIds.length === 0) {
+        return json(res, 409, { error: 'no credentials stored for this job - intake store credentials first (POST /api/jobs/:id/credentials)' })
+      }
+      const handoff = await vault.issueHandoff(job.credIds, { jobId: job.id })
+      const gh = new GitHubOrchestrator({ apiToken: env.APPIARY_GITHUB_TOKEN, repo: env.APPIARY_GITHUB_REPO, fetchImpl })
+      /* the runner needs the rendered capacitor config (server.url for wrap
+         mode, none for bundle mode), not the raw intake record */
+      const stored = JSON.parse(readFileSync(join(jobDir(job.id), 'capacitor.config.json'), 'utf8'))
+      const config = stored.url
+        ? renderCapacitorConfig({ webUrl: stored.url, appId: stored.appId, appName: stored.appName, version: stored.version, permissions: stored.permissions }).config
+        : renderBundledConfig({ appId: stored.appId, appName: stored.appName, version: stored.version, permissions: stored.permissions }).config
+      const artifactBase = env.APPIARY_DASHBOARD_URL || `http://${req.headers.host}`
       const result = await gh.dispatchBuild({
         platform,
         config,
-        metadata: { jobId: job.id, releaseTrack: body.releaseTrack || 'internal' },
+        metadata: {
+          jobId: job.id,
+          releaseTrack: body.releaseTrack || 'internal',
+          artifactBase,
+          artifactToken: jobTokens.get(job.id)
+        },
         baseUrl: env.APPIARY_HANDOFF_URL || 'http://localhost:0',
         jobId: job.id,
-        runner: body.runner || null
+        runner: body.runner || null,
+        handoff
       })
       job.state = 'dispatched'
       job.dispatchedAt = new Date().toISOString()
       log.log(`== dashboard: dispatched ${job.appId} (${platform})`)
       return json(res, 200, { job, dispatch: result })
+    }
+
+    /* ---- credential intake: the owner's store keys, vaulted ---- */
+    const credMatch = url.pathname.match(/^\/api\/jobs\/([a-f0-9-]+)\/credentials$/)
+    if (req.method === 'POST' && credMatch) {
+      const job = jobs.get(credMatch[1])
+      if (!job) return json(res, 404, { error: 'no such job' })
+      if (!vault) {
+        return json(res, 503, { error: 'vault not configured (APPIARY_MASTER_KEY) - credential intake unavailable' })
+      }
+      const body = JSON.parse((await readBody(req)).toString('utf8') || '{}')
+      if (!body.kind) return json(res, 400, { error: 'credential kind required (e.g. appleApi, playJson)' })
+      const id = await vault.putCredential(job.id, body.kind, body)
+      job.credIds = [...(job.credIds || []), id]
+      log.log(`== dashboard: credential ${body.kind} vaulted for ${job.appId}`)
+      return json(res, 200, { credentialId: id })
+    }
+
+    /* ---- artifact lane: the runner posts the built binary here ---- */
+    const artifactMatch = url.pathname.match(/^\/api\/jobs\/([a-f0-9-]+)\/artifact$/)
+    if (req.method === 'POST' && artifactMatch) {
+      const job = jobs.get(artifactMatch[1])
+      if (!job) return json(res, 404, { error: 'no such job' })
+      const token = jobTokens.get(job.id)
+      if (!token || req.headers['x-appiary-job-token'] !== token) {
+        return json(res, 401, { error: 'artifact upload requires the job token (x-appiary-job-token, handed to the runner at dispatch)' })
+      }
+      const bytes = await readBody(req, 200 * 1024 * 1024)
+      if (bytes.length < 4) return json(res, 400, { error: 'empty artifact' })
+      const dir = join(jobDir(job.id), 'artifact')
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, 'app-build.bin'), bytes)
+      job.artifact = { bytes: bytes.length, receivedAt: new Date().toISOString(), filename: 'app-build.bin' }
+      log.log(`== dashboard: artifact received for ${job.appId} (${bytes.length} bytes)`)
+      return json(res, 200, { artifact: job.artifact })
+    }
+    if (req.method === 'GET' && artifactMatch) {
+      const job = jobs.get(artifactMatch[1])
+      if (!job) return json(res, 404, { error: 'no such job' })
+      const p = join(jobDir(job.id), 'artifact', 'app-build.bin')
+      if (!existsSync(p)) return json(res, 404, { error: 'no artifact yet' })
+      const bytes = readFileSync(p)
+      res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-length': bytes.length })
+      return res.end(bytes)
     }
 
     /* ---- job reads ---- */
@@ -207,7 +300,7 @@ export function startDashboard({
   return new Promise((resolve) => {
     server.listen(0, () => {
       const port = server.address().port
-      resolve({ server, port, jobs })
+      resolve({ server, port, jobs, jobTokens })
     })
   })
 }

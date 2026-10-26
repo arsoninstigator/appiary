@@ -16,6 +16,17 @@
   publish dispatch with platform + release track pickers, live job
   list. honest degradation: steps needing external keys answer 503
   with the exact missing env, never pretend.
+- git-repo intake in the dashboard: mode git wraps a repo url
+  (github/gitlab/bitbucket/gitea, validated through classifyIntake)
+  with an optional branch, stored as bundle-git.
+- preview-after-real-builds: publish mints a real single-use vault
+  handoff and hands the runner a per-job artifact token + base url;
+  the build workflow reports the finished binary back to the
+  dashboard (token-gated), and preview serves it to appetize from
+  the dashboard's own public route - no artifact url hunting.
+- credential intake: per-job store credentials go through the
+  envelope-encrypted vault before publish; tokens never leak into
+  list/detail responses.
 - parked on the horizon (asked 2026-10-20): amazon fire tablets
   (android - a new store channel when asked), fire tv/stick (10-foot
   ui question, parked), chromebooks (already free via the play
