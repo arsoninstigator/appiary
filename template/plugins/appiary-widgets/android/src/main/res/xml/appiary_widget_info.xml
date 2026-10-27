@@ -4,7 +4,11 @@
     android:minHeight="110dp"
     android:targetCellWidth="3"
     android:targetCellHeight="2"
-    android:updatePeriodSeconds="1800"
+    <!-- no updatePeriodSeconds: it is the os's battery-hostile polling
+         mechanism. this widget is snapshot-driven - refreshWidgets() nudges
+         the provider the moment the app writes, and the home screen redraws
+         on its own. (also: AAPT on compileSdk 36 rejects the attribute in
+         library packaging - caught by a real gradle build, not by us.) -->
     android:initialLayout="@layout/appiary_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

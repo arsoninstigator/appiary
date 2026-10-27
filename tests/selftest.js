@@ -1035,7 +1035,8 @@ await test('34 widgets capability (v1.x): data-not-pixels plugin, self-contained
   assert.ok(pm.includes('exported="false"'), 'receiver must not be exported')
 
   const info = readFileSync(new URL('../template/plugins/appiary-widgets/android/src/main/res/xml/appiary_widget_info.xml', import.meta.url), 'utf8')
-  assert.ok(info.includes('targetCellWidth') && info.includes('updatePeriodSeconds'), 'widget info must size itself and refresh on a period')
+  assert.ok(info.includes('targetCellWidth'), 'widget info must size itself for modern launchers')
+  assert.ok(!info.includes('updatePeriodSeconds'), 'no os-side polling: the widget is snapshot-driven, refreshes come from the app writing')
 
   const pluginJava = readFileSync(new URL('../template/plugins/appiary-widgets/android/src/main/java/appiary/widgets/AppiaryWidgetsPlugin.java', import.meta.url), 'utf8')
   assert.ok(pluginJava.includes('"appiary_widget"'), 'snapshot must land in shared storage the provider can read')
