@@ -1021,6 +1021,56 @@ await test('33 dashboard (v1.1): intake, icons, honest 503s over real http', asy
   }
 })
 
+
+await test('34 widgets capability (v1.x): data-not-pixels plugin, self-contained manifest, bridge surface', async () => {
+  const { normalizePermissions, pluginDependenciesFor, entitlementsFor } = await import(new URL('../src/permissions.js', import.meta.url))
+  assert.ok(normalizePermissions(['widgets']).includes('widgets'), 'widgets must be a declared capability')
+  assert.equal(pluginDependenciesFor(['widgets']).length, 0, 'first-party via plugin, no registry dep')
+  assert.equal(Object.keys(entitlementsFor(['widgets'])).length, 0, 'widgets imply no entitlements')
+
+  /* plugin sources: the receiver is self-contained in the library manifest */
+  const pm = readFileSync(new URL('../template/plugins/appiary-widgets/android/src/main/AndroidManifest.xml', import.meta.url), 'utf8')
+  assert.ok(pm.includes('APPWIDGET_UPDATE'), 'receiver must filter on APPWIDGET_UPDATE')
+  assert.ok(pm.includes('android.appwidget.provider') && pm.includes('@xml/appiary_widget_info'), 'provider meta-data must point at the widget info')
+  assert.ok(pm.includes('exported="false"'), 'receiver must not be exported')
+
+  const info = readFileSync(new URL('../template/plugins/appiary-widgets/android/src/main/res/xml/appiary_widget_info.xml', import.meta.url), 'utf8')
+  assert.ok(info.includes('targetCellWidth') && info.includes('updatePeriodSeconds'), 'widget info must size itself and refresh on a period')
+
+  const pluginJava = readFileSync(new URL('../template/plugins/appiary-widgets/android/src/main/java/appiary/widgets/AppiaryWidgetsPlugin.java', import.meta.url), 'utf8')
+  assert.ok(pluginJava.includes('"appiary_widget"'), 'snapshot must land in shared storage the provider can read')
+  assert.ok(pluginJava.includes('refreshWidgets'), 'set() must nudge the provider for immediate redraw')
+  const providerJava = readFileSync(new URL('../template/plugins/appiary-widgets/android/src/main/java/appiary/widgets/AppiaryWidgetProvider.java', import.meta.url), 'utf8')
+  assert.ok(providerJava.includes('open the app once to feed me data'), 'empty state must be an honest placeholder')
+  assert.ok(providerJava.includes('readData'), 'provider renders from the snapshot, never the webview')
+
+  /* ios half is the staged data surface - the docs say so, the code stays honest */
+  const swift = readFileSync(new URL('../template/plugins/appiary-widgets/ios/Plugin/AppiaryWidgetsPlugin.swift', import.meta.url), 'utf8')
+  assert.ok(swift.includes('pixels half does not yet'), 'ios staging must be stated in the source')
+
+  /* bridge surface */
+  const bridge = readFileSync(new URL('../template/runtime/appiary-bridge.js', import.meta.url), 'utf8')
+  assert.ok(bridge.includes('widget: {') && bridge.includes('AppiaryWidgets'), 'bridge must expose appiary.widget against the plugin')
+
+  /* pre wiring: declaring widgets installs the file dep */
+  const { execFileSync } = await import('node:child_process')
+  const { mkdtempSync, writeFileSync, readFileSync: rf } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const script = new URL('../template/scripts/apply-runtime.js', import.meta.url).pathname
+  const dir = mkdtempSync(join(tmpdir(), 'appiary-widget-'))
+  writeFileSync(join(dir, 'capacitor.config.json'), JSON.stringify({ appId: 'com.demo.w', appName: 'w', version: '0.4.0', permissions: ['widgets'], channel: { name: 'play' } }))
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'x', type: 'module', devDependencies: {} }))
+  execFileSync('node', [script, 'pre', 'android'], { cwd: dir, env: { ...process.env, GITHUB_RUN_NUMBER: '5' } })
+  const pkg = JSON.parse(rf(join(dir, 'package.json'), 'utf8'))
+  assert.equal(pkg.devDependencies['appiary-widgets'], 'file:plugins/appiary-widgets', 'widgets declaration must install the first-party plugin')
+  const noWidgets = mkdtempSync(join(tmpdir(), 'appiary-now-'))
+  writeFileSync(join(noWidgets, 'capacitor.config.json'), JSON.stringify({ appId: 'com.demo.n', appName: 'n', version: '0.4.0', permissions: [], channel: { name: 'play' } }))
+  writeFileSync(join(noWidgets, 'package.json'), JSON.stringify({ name: 'x', type: 'module', devDependencies: {} }))
+  execFileSync('node', [script, 'pre', 'android'], { cwd: noWidgets, env: { ...process.env, GITHUB_RUN_NUMBER: '5' } })
+  const pkg2 = JSON.parse(rf(join(noWidgets, 'package.json'), 'utf8'))
+  assert.ok(!pkg2.devDependencies['appiary-widgets'], 'undeclared widgets must not install the plugin')
+})
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length > 0) {
   process.exitCode = 1

@@ -1,0 +1,27 @@
+ext {
+  capacitorPluginVersion = project.hasProperty('capacitorPluginVersion') ? capacitorPluginVersion : 'unspecified'
+}
+
+apply plugin: 'com.android.library'
+
+android {
+  namespace 'appiary.widgets'
+  compileSdk rootProject.ext.has('compileSdkVersion') ? rootProject.ext['compileSdkVersion'] : 36
+  defaultConfig {
+    minSdkVersion rootProject.ext.has('minSdkVersion') ? rootProject.ext['minSdkVersion'] : 24
+    targetSdkVersion rootProject.ext.has('targetSdkVersion') ? rootProject.ext['targetSdkVersion'] : 36
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_21
+    targetCompatibility JavaVersion.VERSION_21
+  }
+}
+
+repositories {
+  google()
+}
+
+/* appwidgets, remoteviews, and the prefs store are all framework pieces -
+   no third-party dependencies. */
+dependencies {
+}

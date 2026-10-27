@@ -78,6 +78,12 @@ if (phase === 'pre') {
        dep installs it from the repo and cap sync registers it. */
     pkg.devDependencies['appiary-game-services'] = 'file:plugins/appiary-game-services'
   }
+  if (permissions.includes('widgets')) {
+    /* first-party local plugin: the widget receiver lives in the plugin
+       library's own manifest, so the app module needs no patch - declaring
+       the capability is the whole wiring. */
+    pkg.devDependencies['appiary-widgets'] = 'file:plugins/appiary-widgets'
+  }
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
   normalizeReleaseTrack(platform, config.releaseTrack, config.rollout)
   console.log(`pre: channel ${channel.name}, track ${config.releaseTrack || 'default'}, ${permissions.length} declared capabilities`)

@@ -46,6 +46,15 @@ export const PERMISSIONS = {
     label: 'game services (google play games / game center)',
     ios: { key: null, entitlement: 'com.apple.developer.game-center', description: null },
     android: []
+  },
+  widgets: {
+    /** home-screen widgets. no os permission dialog: the home screen is
+     *  the os's own surface. android needs no app manifest line (the
+     *  plugin library manifest merges the receiver in); ios needs no
+     *  entitlement until the extension target lands. */
+    label: 'home-screen widgets',
+    ios: { key: null, entitlement: null, description: null },
+    android: []
   }
 }
 
@@ -182,6 +191,13 @@ export const RUNTIME_SURFACE = {
        sign-in flow has no permission state to query. */
     plugin: null,
     via: 'appiary-game-services'
+  },
+  widgets: {
+    /* first-party in-repo plugin (template/plugins/appiary-widgets):
+       data-not-pixels - the bridge writes snapshots, the native provider
+       renders them while the webview is dead. */
+    plugin: null,
+    via: 'appiary-widgets'
   }
 }
 

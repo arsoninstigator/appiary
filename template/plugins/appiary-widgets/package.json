@@ -1,0 +1,9 @@
+{
+  "name": "appiary-widgets",
+  "version": "0.1.0",
+  "description": "appiary first-party capacitor plugin: home-screen widgets. the hard part is data, not pixels - the webview writes a data snapshot through the bridge while the app is alive, and the widget renders from shared storage while the webview is dead. android half is real (appwidget receiver + provider, self-contained library manifest merge); ios half is the staged data surface (the widgetkit extension target is the follow-up).",
+  "capacitor": {
+    "android": { "src": "android" },
+    "ios": { "src": "ios" }
+  }
+}

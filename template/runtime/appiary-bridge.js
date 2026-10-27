@@ -192,7 +192,30 @@
 
     /** google play games v2 (android) / game center (ios). the store
         handles sign-in; ids are the console-declared resource ids. */
-    gameServices: {
+    widget: {
+    /** data-not-pixels: write a snapshot the home-screen widget renders
+       while this webview is dead. call it on your own schedule; the
+       widget shows the last snapshot until the app writes a newer one. */
+    available: function () {
+      return !!plugins.AppiaryWidgets && native
+    },
+    set: function (payload) {
+      var p = plugins.AppiaryWidgets
+      if (!p) return Promise.resolve({ set: false, unavailable: true })
+      return p.set({ title: String(payload && payload.title || ''), body: String(payload && payload.body || ''), kind: String(payload && payload.kind || 'default') })
+    },
+    clear: function () {
+      var p = plugins.AppiaryWidgets
+      if (!p) return Promise.resolve({ unavailable: true })
+      return p.clear()
+    },
+    get: function () {
+      var p = plugins.AppiaryWidgets
+      if (!p) return Promise.resolve({ set: false, unavailable: true })
+      return p.get()
+    }
+  },
+  gameServices: {
       available: function () {
         return !!plugins.AppiaryGameServices && native
       },

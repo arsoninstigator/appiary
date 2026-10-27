@@ -38,7 +38,7 @@ cat > capacitor.config.json <<'CFG'
   "appId": "com.demo.game",
   "appName": "appiary compile test",
   "version": "0.4.0",
-  "permissions": ["gameServices", "push", "camera"],
+  "permissions": ["gameServices", "push", "camera", "widgets"],
   "channel": { "name": "play" }
 }
 CFG
