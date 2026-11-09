@@ -21,7 +21,9 @@ repositories {
   google()
 }
 
-/* appwidgets, remoteviews, and the prefs store are all framework pieces -
-   no third-party dependencies. */
+/* appwidgets, remoteviews, and the prefs store are framework pieces. the
+   only dependency is capacitor itself: the bridge class extends Plugin and
+   uses the @CapacitorPlugin / @PluginMethod annotations. */
 dependencies {
+  implementation project(':capacitor-android')
 }
